@@ -16,10 +16,12 @@ fault-tolerant nature of our system.
 
 
 ## Running Code
+1. [Install Go](https://go.dev/doc/install).
 
-1. To initialize Go modules, run from the project directory:
+1. Initialize Go modules from the project directory:
 ```
 go mod init final_project
+go mod tidy
 ```
 
 2. To run server, open a new terminal and run:
