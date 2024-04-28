@@ -1,5 +1,5 @@
 # Fault-Tolerant Load Balancing with Dynamic Consistent Hashing
-## Final Project for Stanford CS244B Distributed Computing
+## Abstract
 
 Load balancing, by ensuring the equitable distribution of requests in a cluster, helps
 reduce the likelihood of hotspots among cluster nodes. In this project, we will
@@ -14,3 +14,19 @@ going down/getting added to the system. As a stretch goal, we may also perform
 evaluations on a database retrieval and update system to further demonstrate the
 fault-tolerant nature of our system.
 
+
+## Running Code
+
+1. To initialize Go modules, run from the project directory:
+```
+go mod init final_project
+```
+
+2. To run server, open a new terminal and run:
+```
+go run .\simple_server\simple_server.go
+```
+3. To run client, open a new terminal and run:
+```
+go run .\simple_client\simple_client.go
+```
