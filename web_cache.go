@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -69,7 +69,7 @@ func main() {
 		}
 		defer resp.Body.Close()
 
-		content, err := ioutil.ReadAll(resp.Body)
+		content, err := io.ReadAll(resp.Body)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error reading response body: %v", err), http.StatusInternalServerError)
 			return
