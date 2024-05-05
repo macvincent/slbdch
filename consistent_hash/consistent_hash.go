@@ -7,15 +7,15 @@ import (
 	"sort"
 )
 
-type consitentHash struct {
+type consistentHash struct {
 	// maps virtual nodes hash to their IP addresses
 	vnodeHashToAddress map[byte]string
 	// sorted list of virtual nodes
 	sortedVnodeHash []byte
 }
 
-func newConsistentHash(ipAddresses []string, replicaPerNode int) *consitentHash {
-	ch := &consitentHash{
+func newConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash {
+	ch := &consistentHash{
 		vnodeHashToAddress: make(map[byte]string),
 		sortedVnodeHash:    make([]byte, 0),
 	}
@@ -43,7 +43,7 @@ func newConsistentHash(ipAddresses []string, replicaPerNode int) *consitentHash 
 	return ch
 }
 
-func (ch *consitentHash) valueLookup(value string) string {
+func (ch *consistentHash) valueLookup(value string) string {
 	hashFunction := sha256.New()
 	hashFunction.Write([]byte(value))
 	hash := hashFunction.Sum(nil)[31]
