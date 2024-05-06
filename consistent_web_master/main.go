@@ -1,10 +1,10 @@
 package main
 
 import (
-	"final_project/consistent_hash"
 	"fmt"
 	"io"
 	"net/http"
+	"web_master/consistent_hash"
 )
 
 func main() {

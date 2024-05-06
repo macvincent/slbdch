@@ -44,7 +44,6 @@ func (c *Cache) Set(key string, entry CacheEntry) {
 }
 
 func main() {
-	
 	cache := NewCache()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

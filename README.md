@@ -32,3 +32,29 @@ go run .\simple_server\simple_server.go
 ```
 go run .\simple_client\simple_client.go
 ```
+
+## Running Web Cache Locally
+1. Start up your Docker daemon (make sure you are also signed in).
+
+2. Change current terminal directory to `web_cache`:
+```
+cd web_cache
+```
+
+2. Build Docker image (This may take a while):
+```
+docker build --tag web_cache .
+```
+
+3. Run web cache image:
+```
+docker run --publish 8080:8080 web_cache
+```
+
+## Setup Kubernetes Cluster
+1. Setup Initial Cluster (Only run at first):
+```
+gcloud container clusters create k0 --zone=us-west1-b
+```
+
+
