@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"web_master/consistent_hash"
+	"web_main/consistent_hash"
 )
 
 func main() {
-	// Create a new consistent hash with 5 nodes and 10 replicas per node
-	nodeAddresses := []string{"54788", "54789", "54790", "54791", "54792"}
+	// TODO: Update this with local web cache port numbers
+	nodeAddresses := []string{"56085", "56086", "56087", "56088", "56089"}
 	replicaPerNode := 10
-	consistentHash := consistent_hash.NewConsistentHash(nodeAddresses, replicaPerNode)
+	consistentHash := consistent_hash.NewTrie(nodeAddresses, replicaPerNode)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL.Query().Get("url")
@@ -21,7 +21,7 @@ func main() {
 		}
 
 		// Find the IP address of the node that will serve the URL
-		ip := consistentHash.ValueLookup(url)
+		ip := consistentHash.Search(url)
 		// Fetch content from the web
 		resp, err := http.Get(fmt.Sprintf("http://localhost:%v//%v?url=%v", ip, ip, url))
 

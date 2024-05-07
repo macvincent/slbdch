@@ -18,43 +18,32 @@ fault-tolerant nature of our system.
 ## Running Code
 1. [Install Go](https://go.dev/doc/install).
 
-1. Initialize Go modules from the project directory:
-```
-go mod init final_project
-go mod tidy
-```
 
-2. To run server, open a new terminal and run:
-```
-go run .\simple_server\simple_server.go
-```
-3. To run client, open a new terminal and run:
-```
-go run .\simple_client\simple_client.go
-```
-
-## Running Web Cache Locally
-1. Start up your Docker daemon (make sure you are also signed in).
-
-2. Change current terminal directory to `web_cache`:
+## Running Web Caches Locally
+1. In a new termainal, change current terminal directory to `web_cache`:
 ```
 cd web_cache
 ```
-
-2. Build Docker image (This may take a while):
+2. Initialize go modules from the project directory:
 ```
-docker build --tag web_cache .
+go mod tidy
 ```
-
-3. Run web cache image:
+3. Run main script while keeping track of open ports:
 ```
-docker run --publish 8080:8080 web_cache
+go run ./
 ```
 
-## Setup Kubernetes Cluster
-1. Setup Initial Cluster (Only run at first):
+## Running consistent web main
+1. Update  `consistent_web_main/main.go` with a list of available ports.
+2. In a new termainal, change current terminal directory to `consistent_web_main`:
 ```
-gcloud container clusters create k0 --zone=us-west1-b
+cd consistent_web_main
 ```
-
-
+3. Initialize go modules from the project directory:
+```
+go mod tidy
+```
+4. Run main script while keeping track of open ports:
+```
+go run ./
+```
