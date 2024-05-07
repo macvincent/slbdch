@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go application
-RUN CGO_ENABLED=0 GOOS=linux go build -o app
+RUN go build -o app
 
 # Expose the port that the application listens on
 EXPOSE 8080

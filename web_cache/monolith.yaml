@@ -8,9 +8,8 @@ spec:
   containers:
     - name: monolith
       image: macvincent/web_cache
-      args:
-        - "-http=0.0.0.0:80"
-        - "-health=0.0.0.0:81"
+      command:
+          - ./app
       ports:
         - name: http
           containerPort: 80

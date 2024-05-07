@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// Create a new consistent hash with 5 nodes and 10 replicas per node
-	nodeAddresses := []string{"8.8.8.8", "1.1.1.1", "208.67.222.222", "208.67.220.220", "9.9.9.9"}
+	nodeAddresses := []string{"54788", "54789", "54790", "54791", "54792"}
 	replicaPerNode := 10
 	consistentHash := consistent_hash.NewConsistentHash(nodeAddresses, replicaPerNode)
 
@@ -23,7 +23,7 @@ func main() {
 		// Find the IP address of the node that will serve the URL
 		ip := consistentHash.ValueLookup(url)
 		// Fetch content from the web
-		resp, err := http.Get(fmt.Sprintf("http://%v?url=%v", ip, url))
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%v//%v?url=%v", ip, ip, url))
 
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching URL: %v", err), http.StatusInternalServerError)
