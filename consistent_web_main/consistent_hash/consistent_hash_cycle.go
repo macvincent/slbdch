@@ -1,9 +1,7 @@
-package main
+package consistent_hash
 
 import (
 	"crypto/sha256"
-	"fmt"
-	"math/rand/v2"
 	"sort"
 )
 
@@ -12,12 +10,14 @@ type consistentHash struct {
 	vnodeHashToAddress map[byte]string
 	// sorted list of virtual nodes
 	sortedVnodeHash []byte
+	replicaPerNode  int
 }
 
-func newConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash {
+func NewConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash {
 	ch := &consistentHash{
 		vnodeHashToAddress: make(map[byte]string),
 		sortedVnodeHash:    make([]byte, 0),
+		replicaPerNode:     replicaPerNode,
 	}
 
 	hashFunction := sha256.New()
@@ -31,7 +31,6 @@ func newConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash
 		for i := 31; i > 31-replicaPerNode; i-- {
 			ch.sortedVnodeHash = append(ch.sortedVnodeHash, virtualNodePositions[i])
 			ch.vnodeHashToAddress[virtualNodePositions[i]] = ip
-			fmt.Printf("IP: %v, Virtual Node: %v\n", ip, virtualNodePositions[i])
 		}
 	}
 
@@ -43,7 +42,7 @@ func newConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash
 	return ch
 }
 
-func (ch *consistentHash) valueLookup(value string) string {
+func (ch *consistentHash) ValueLookup(value string) string {
 	hashFunction := sha256.New()
 	hashFunction.Write([]byte(value))
 	hash := hashFunction.Sum(nil)[31]
@@ -60,25 +59,24 @@ func (ch *consistentHash) valueLookup(value string) string {
 	return ch.vnodeHashToAddress[ch.sortedVnodeHash[index]]
 }
 
-func main() {
-	fmt.Println("*** Consistent Hash Initialization***")
-	nodeAddresses := []string{"8.8.8.8", "1.1.1.1", "208.67.222.222", "208.67.220.220", "9.9.9.9"}
-	replicaPerNode := 10
-	consistentHash := newConsistentHash(nodeAddresses, replicaPerNode)
+func (ch *consistentHash) DeleteNode(ip string) {
+	hashFunction := sha256.New()
+	hashFunction.Write([]byte(ip))
+	virtualNodePositions := hashFunction.Sum(nil)
+	hashFunction.Reset()
 
-	fmt.Println("\n*** Sanity Check ***")
-	// a map to count the number of url valuwa per IP address
-	ipAddressCount := make(map[string]int)
+	for i := 31; i > 31-ch.replicaPerNode; i-- {
+		nodePosition := virtualNodePositions[i]
+		// Delete from vnodeHashToAddress
+		delete(ch.vnodeHashToAddress, nodePosition)
 
-	for i := 0; i < replicaPerNode*1000; i++ {
-		url := fmt.Sprintf("www.%v.com", rand.IntN(100000))
-		ip := consistentHash.valueLookup(url)
-		ipAddressCount[ip]++
+		// Delete from sortedVnodeHash
+		index := sort.Search(len(ch.sortedVnodeHash), func(i int) bool {
+			return ch.sortedVnodeHash[i] >= nodePosition
+		})
+
+		if index < len(ch.sortedVnodeHash) && ch.sortedVnodeHash[index] == nodePosition {
+			ch.sortedVnodeHash = append(ch.sortedVnodeHash[:index], ch.sortedVnodeHash[index+1:]...)
+		}
 	}
-
-	// print the number of url values per IP address
-	for ip, count := range ipAddressCount {
-		fmt.Printf("IP: %v, Count: %v\n", ip, count)
-	}
-	fmt.Println("Ideal Count Per Node: ", replicaPerNode*1000/len(nodeAddresses))
 }
