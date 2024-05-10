@@ -10,12 +10,14 @@ type consistentHash struct {
 	vnodeHashToAddress map[byte]string
 	// sorted list of virtual nodes
 	sortedVnodeHash []byte
+	replicaPerNode  int
 }
 
 func NewConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash {
 	ch := &consistentHash{
 		vnodeHashToAddress: make(map[byte]string),
 		sortedVnodeHash:    make([]byte, 0),
+		replicaPerNode:     replicaPerNode,
 	}
 
 	hashFunction := sha256.New()
@@ -55,4 +57,26 @@ func (ch *consistentHash) ValueLookup(value string) string {
 	}
 
 	return ch.vnodeHashToAddress[ch.sortedVnodeHash[index]]
+}
+
+func (ch *consistentHash) DeleteNode(ip string) {
+	hashFunction := sha256.New()
+	hashFunction.Write([]byte(ip))
+	virtualNodePositions := hashFunction.Sum(nil)
+	hashFunction.Reset()
+
+	for i := 31; i > 31-ch.replicaPerNode; i-- {
+		nodePosition := virtualNodePositions[i]
+		// Delete from vnodeHashToAddress
+		delete(ch.vnodeHashToAddress, nodePosition)
+
+		// Delete from sortedVnodeHash
+		index := sort.Search(len(ch.sortedVnodeHash), func(i int) bool {
+			return ch.sortedVnodeHash[i] >= nodePosition
+		})
+
+		if index < len(ch.sortedVnodeHash) && ch.sortedVnodeHash[index] == nodePosition {
+			ch.sortedVnodeHash = append(ch.sortedVnodeHash[:index], ch.sortedVnodeHash[index+1:]...)
+		}
+	}
 }
