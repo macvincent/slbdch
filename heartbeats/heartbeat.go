@@ -33,7 +33,7 @@ func main() {
 	masterAddr := "localhost:5050"
 
 	// Port of this server. TODO change this later
-	port := "12345"
+	port := "58535"
 
 	// Start sending heartbeats
 	sendHeartbeat(masterAddr, port)

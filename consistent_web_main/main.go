@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 	"web_main/consistent_hash"
 )
 
 type Master struct {
-	masterPort     int
-	nodeAddresses  []string
-	replicaPerNode int
+	masterPort       int
+	nodeAddresses    []string
+	replicaPerNode   int
+	portTimestampMap map[string]time.Time
 }
 
 func (master Master) processPostRequest(w http.ResponseWriter, r *http.Request) {
@@ -30,6 +32,7 @@ func (master Master) processPostRequest(w http.ResponseWriter, r *http.Request) 
 
 	// Process the heartbeat (for example, you can log it)
 	fmt.Printf("Received heartbeat from port %s\n", port)
+	master.portTimestampMap[port] = time.Now()
 
 	// Respond with a success message
 	w.WriteHeader(http.StatusOK)
@@ -79,10 +82,21 @@ func (master Master) serve() {
 
 func main() {
 	// TODO: Update this with local web cache port numbers
+	portTimestampMap := make(map[string]time.Time)
+	nodeAddresses := []string{"58535", "58536", "58537", "58538", "58539"}
+
+	// Initialize for time.Now() + 10 seconds to allow for starting
+	// everything up
+	timestamp := time.Now().Add(10 * time.Second)
+	for _, port := range nodeAddresses {
+		portTimestampMap[port] = timestamp
+	}
+
 	master := Master{
-		masterPort:     5050,
-		nodeAddresses:  []string{"58535", "58536", "58537", "58538", "58539"},
-		replicaPerNode: 10,
+		masterPort:       5050,
+		nodeAddresses:    nodeAddresses,
+		replicaPerNode:   10,
+		portTimestampMap: portTimestampMap,
 	}
 	master.serve()
 }
