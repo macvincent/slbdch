@@ -15,11 +15,38 @@ evaluations on a database retrieval and update system to further demonstrate the
 fault-tolerant nature of our system.
 
 
-## Running Code
+## Install Dependencies
 1. [Install Go](https://go.dev/doc/install).
 
 
-## Running Web Caches Locally
+## [Optional] Running Web Caches in GCP:
+1. Create a Google Cloud VM (`gcloud projects list` to view lists of projects):
+```
+ gcloud compute instances create go-vm1 --machine-type=n1-standard-1 --image-family=debian-10 --image-project=debian-cloud --zone=us-west4-a --tags=http-server
+```
+You will also need to update your GCP rules to allow external connection requests using these [instructions](https://www.geeksforgeeks.org/how-to-open-port-in-gcp-vm/).
+
+2. Move the repo to a newly create VM:
+```
+gcloud compute scp --recurse go-vm1:./ ../
+```
+3. Connect to the VM usign command (`sudo gcloud compute config-ssh` configures ssh if first time):
+```
+gcloud compute ssh go-vm1 --zone=us-west4-a
+```
+
+4. In the ssh shell, make `setup.sh` an executable file:
+```
+chmod +x setup.sh
+```
+
+5. Run setup script:
+```
+./setup.sh
+```
+
+## Running consistent web main
+
 1. In a new termainal, change current terminal directory to `web_cache`:
 ```
 cd web_cache

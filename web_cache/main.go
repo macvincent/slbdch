@@ -1,10 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -46,78 +46,55 @@ func (c *Cache) Set(key string, entry CacheEntry) {
 }
 
 func main() {
-	var mutex sync.Mutex
-	var wg sync.WaitGroup
+	cache := NewCache()
 
-	for i := 0; i < 5; i++ {
-		wg.Add(1)
-		go func() {
-			mutex.Lock()
-			ln, err := net.Listen("tcp", ":0")
-			if err != nil {
-				fmt.Println("Error:", err)
-				return
-			}
-			defer ln.Close()
+	httpAddr := flag.String("http", ":8080", "HTTP service address")
 
-			addr := ln.Addr().(*net.TCPAddr)
-			fmt.Println("Next available port:", addr.Port)
-			httpAddr := fmt.Sprintf(":%d", addr.Port)
+	log.Printf("HTTP service listening on %s", *httpAddr)
 
-			log.Println("Starting server...")
-			log.Printf("HTTP service listening on %s", httpAddr)
-			mutex.Unlock()
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		url := r.URL.Query().Get("url")
+		if url == "" {
+			http.Error(w, "Missing 'url' query parameter", http.StatusBadRequest)
+			return
+		}
 
-			cache := NewCache()
+		if entry, ok := cache.Get(url); ok && time.Now().Before(entry.Expiration) {
+			// Serve cached content
+			w.Header().Set("Content-Type", entry.ContentType)
+			w.Write(entry.Content)
+			fmt.Println("Served from cache:", url)
+			return
+		}
 
-			http.HandleFunc(fmt.Sprintf("/%d/", addr.Port), func(w http.ResponseWriter, r *http.Request) {
-				url := r.URL.Query().Get("url")
-				if url == "" {
-					http.Error(w, "Missing 'url' query parameter", http.StatusBadRequest)
-					return
-				}
+		// Fetch content from the web
+		resp, err := http.Get(url)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error fetching URL: %v", err), http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
 
-				if entry, ok := cache.Get(url); ok && time.Now().Before(entry.Expiration) {
-					// Serve cached content
-					w.Header().Set("Content-Type", entry.ContentType)
-					w.Write(entry.Content)
-					fmt.Printf("%d: Served from cache:%s\n", addr.Port, url)
-					return
-				}
+		content, err := io.ReadAll(resp.Body)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error reading response body: %v", err), http.StatusInternalServerError)
+			return
+		}
 
-				// Fetch content from the web
-				resp, err := http.Get(url)
-				if err != nil {
-					http.Error(w, fmt.Sprintf("Error fetching URL: %v", err), http.StatusInternalServerError)
-					return
-				}
-				defer resp.Body.Close()
+		// Cache content for 1 minute
+		entry := CacheEntry{
+			Content:     content,
+			ContentType: resp.Header.Get("Content-Type"),
+			Expiration:  time.Now().Add(1 * time.Minute),
+		}
+		cache.Set(url, entry)
 
-				content, err := io.ReadAll(resp.Body)
-				if err != nil {
-					http.Error(w, fmt.Sprintf("Error reading response body: %v", err), http.StatusInternalServerError)
-					return
-				}
+		// Serve fetched content
+		w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+		w.Write(content)
+		fmt.Println("Fetched and cached:", url)
+	})
 
-				// Cache content for 1 minute
-				entry := CacheEntry{
-					Content:     content,
-					ContentType: resp.Header.Get("Content-Type"),
-					Expiration:  time.Now().Add(1 * time.Minute),
-				}
-				cache.Set(url, entry)
-
-				// Serve fetched content
-				w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
-				w.Write(content)
-				fmt.Printf("%d: Fetched and cached:%s\n", addr.Port, url)
-			})
-
-			fmt.Println("Server started on ", httpAddr)
-			http.Serve(ln, nil)
-		}()
-	}
-	fmt.Println("All servers started")
-	wg.Wait()
-
+	fmt.Println("Server started on :8080")
+	http.ListenAndServe(":8080", nil)
 }
