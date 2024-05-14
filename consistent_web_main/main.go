@@ -4,15 +4,49 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 	"web_main/consistent_hash"
 )
 
-func main() {
-	// TODO: Update this with local web cache port numbers
-	nodeAddresses := []string{"56085", "56086", "56087", "56088", "56089"}
-	replicaPerNode := 10
-	consistentHash := consistent_hash.NewTrie(nodeAddresses, replicaPerNode)
+type Main struct {
+	mainPort         int
+	nodeAddresses    []string
+	replicaPerNode   int
+	nodeTimestampMap map[string]time.Time
+}
 
+func (main Main) processPostRequest(w http.ResponseWriter, r *http.Request) {
+	// TODO: change this later based upon IP address
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
+		return
+	}
+
+	// Get the port from the form data
+	node := r.Form.Get("node")
+	if node == "" {
+		http.Error(w, "Node parameter is missing", http.StatusBadRequest)
+		return
+	}
+
+	// Process the heartbeat (for example, you can log it)
+	fmt.Printf("Received heartbeat from node %s\n", node)
+	main.nodeTimestampMap[node] = time.Now()
+
+	// Respond with a success message
+	w.WriteHeader(http.StatusOK)
+}
+
+func (main Main) serve() {
+	consistentHash := consistent_hash.NewTrie(main.nodeAddresses, main.replicaPerNode)
+
+	// Start the heartbeat server
+	http.Handle("/heartbeat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		main.processPostRequest(w, r)
+	}))
+
+	// Start the main server
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL.Query().Get("url")
 		if url == "" {
@@ -23,7 +57,7 @@ func main() {
 		// Find the IP address of the node that will serve the URL
 		ip := consistentHash.Search(url)
 		// Fetch content from the web
-		resp, err := http.Get(fmt.Sprintf("http://localhost:%v//%v?url=%v", ip, ip, url))
+		resp, err := http.Get(fmt.Sprintf("http://%v:8080?url=%v", ip, url))
 
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching URL: %v", err), http.StatusInternalServerError)
@@ -42,6 +76,27 @@ func main() {
 		w.Write(content)
 	})
 
-	fmt.Println("Server started on :5050")
-	http.ListenAndServe(":5050", nil)
+	serveAddr := fmt.Sprintf(":%d", main.mainPort)
+	fmt.Println("Server started on ", serveAddr)
+	http.ListenAndServe(serveAddr, nil)
+}
+
+func main() {
+	nodeTimestampMap := make(map[string]time.Time)
+	nodeAddresses := []string{"34.125.246.49", "34.125.32.120"}
+
+	// Initialize for time.Now() + 10 seconds to allow for starting
+	// everything up
+	timestamp := time.Now().Add(10 * time.Second)
+	for _, nodeAddress := range nodeAddresses {
+		nodeTimestampMap[nodeAddress] = timestamp
+	}
+
+	main := Main{
+		mainPort:         5050,
+		nodeAddresses:    nodeAddresses,
+		replicaPerNode:   10,
+		nodeTimestampMap: nodeTimestampMap,
+	}
+	main.serve()
 }
