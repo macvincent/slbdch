@@ -7,11 +7,19 @@ import (
 )
 
 type consistentHash struct {
-	// maps virtual nodes hash to their IP addresses
+	// maps virtual nodes value in cycle to their IP addresses
 	vnodeHashToAddress map[uint32]string
 	// sorted list of virtual nodes
 	sortedVnodeHash []uint32
 	replicaPerNode  int
+}
+
+func (ch consistentHash) getReplicaHashValues(ip string) []uint32 {
+	hashValues := make([]uint32, 0)
+	for replicaNumber := 0; replicaNumber < ch.replicaPerNode; replicaNumber++ {
+		hashValues = append(hashValues, getTrieKey(fmt.Sprintf("%s-%d", ip, replicaNumber)))
+	}
+	return hashValues
 }
 
 func NewConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash {
@@ -23,8 +31,7 @@ func NewConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash
 
 	// Add IP addresses to the hash table
 	for _, ip := range ipAddresses {
-		for replicaNumber := 0; replicaNumber < replicaPerNode; replicaNumber++ {
-			replica_hash := getTrieKey(fmt.Sprintf("%s-%d", ip, replicaNumber))
+		for _, replica_hash := range ch.getReplicaHashValues(ip) {
 			ch.sortedVnodeHash = append(ch.sortedVnodeHash, replica_hash)
 			ch.vnodeHashToAddress[replica_hash] = ip
 		}
@@ -58,8 +65,7 @@ func (ch *consistentHash) ValueLookup(value string) string {
 }
 
 func (ch *consistentHash) DeleteNode(ip string) {
-	for replicaNumber := 0; replicaNumber < ch.replicaPerNode; replicaNumber++ {
-		replica_hash := getTrieKey(fmt.Sprintf("%s-%d", ip, replicaNumber))
+	for _, replica_hash := range ch.getReplicaHashValues(ip) {
 		delete(ch.vnodeHashToAddress, replica_hash)
 
 		// Delete from sortedVnodeHash
