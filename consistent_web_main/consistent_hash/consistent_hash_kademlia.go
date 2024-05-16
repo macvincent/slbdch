@@ -14,7 +14,8 @@ type TrieNode struct {
 }
 
 type Trie struct {
-	root *TrieNode
+	root           *TrieNode
+	replicaPerNode int
 }
 
 func newNode() *TrieNode {
@@ -22,7 +23,10 @@ func newNode() *TrieNode {
 }
 
 func NewTrie(ipAddresses []string, replicaPerNode int) *Trie {
-	trie := &Trie{root: newNode()}
+	trie := &Trie{
+		root:           newNode(),
+		replicaPerNode: replicaPerNode,
+	}
 
 	// Add IP addresses to the hash table
 	for _, ip := range ipAddresses {
@@ -69,4 +73,37 @@ func (t *Trie) Search(key string) string {
 		}
 	}
 	return node.ipAddress
+}
+
+func (t *Trie) DeleteNode(ip_address string) {
+	for replica_number := 0; replica_number < t.replicaPerNode; replica_number++ {
+		trie_key := getTrieKey(ip_address + strconv.Itoa(replica_number))
+		t.root = deleteRecursive(t.root, trie_key, 31)
+	}
+}
+
+func deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {
+	if node == nil {
+		return nil
+	}
+	// Find the index (0 or 1) where the node needs to go
+	index := (trie_key >> bitIndex) & 1
+
+	// If the other child is also nil, then we return nil
+	if bitIndex == 0 {
+		// If bitIndex is 0, we are at the parent of the leaf node.
+		// We simply set the node's child to nil. It will be automatically
+		// garbage collected.
+		node.children[index] = nil
+	} else {
+		// Otherwise, we recursively call the delete function on the child
+		// node
+		node.children[index] = deleteRecursive(node.children[index], trie_key, bitIndex-1)
+	}
+
+	// If both children of a node are nil, we simply return nil.
+	if node.children[index] == nil && node.children[1-index] == nil {
+		return nil
+	}
+	return node
 }
