@@ -43,8 +43,15 @@ func (c *Cache) Get(key string) (CacheEntry, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	entry, ok := c.entries[key]
-	c.metrics.RequestCount++
-	c.metrics.Hits++
+
+	if ok && time.Now().Before(entry.Expiration) {
+		c.metrics.RequestCount++
+		c.metrics.Hits++
+	} else if ok {
+		// Entry has expired
+		return entry, false
+	}
+
 	return entry, ok
 }
 
@@ -81,7 +88,7 @@ func main() {
 			return
 		}
 
-		if entry, ok := cache.Get(url); ok && time.Now().Before(entry.Expiration) {
+		if entry, ok := cache.Get(url); ok {
 			// Serve cached content
 			w.Header().Set("Content-Type", entry.ContentType)
 			w.Write(entry.Content)
