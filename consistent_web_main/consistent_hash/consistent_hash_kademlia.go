@@ -76,6 +76,8 @@ func (t *Trie) Search(key string) string {
 }
 
 func (t *Trie) DeleteNode(ip_address string) {
+	// TODO: Add locking logic here so that deleteNode is not called
+	// while we are reading
 	for replica_number := 0; replica_number < t.replicaPerNode; replica_number++ {
 		trie_key := getTrieKey(ip_address + strconv.Itoa(replica_number))
 		t.root = deleteRecursive(t.root, trie_key, 31)
