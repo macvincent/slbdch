@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+// CacheMetrics represents metrics for the cache
+type CacheMetrics struct {
+	Hits         int
+	RequestCount int
+}
+
 // CacheEntry represents an entry in the cache
 type CacheEntry struct {
 	Content     []byte
@@ -21,21 +27,30 @@ type CacheEntry struct {
 type Cache struct {
 	entries map[string]CacheEntry
 	mutex   sync.RWMutex
+	metrics CacheMetrics
 }
 
 // NewCache creates a new instance of Cache
 func NewCache() *Cache {
 	return &Cache{
 		entries: make(map[string]CacheEntry),
+		metrics: CacheMetrics{0, 0},
 	}
 }
 
 // Get retrieves a cached entry by key
-func (c *Cache) Get(key string) (CacheEntry, bool) {
+func (c *Cache) Get(key string) (*CacheEntry, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	entry, ok := c.entries[key]
-	return entry, ok
+
+	if ok && time.Now().Before(entry.Expiration) {
+		c.metrics.RequestCount++
+		c.metrics.Hits++
+		return &entry, true
+	}
+
+	return nil, false
 }
 
 // Set inserts or updates a cached entry
@@ -43,6 +58,7 @@ func (c *Cache) Set(key string, entry CacheEntry) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.entries[key] = entry
+	c.metrics.RequestCount++
 }
 
 func main() {
@@ -52,6 +68,17 @@ func main() {
 
 	log.Printf("HTTP service listening on %s", *httpAddr)
 
+	// Expose metrics as JSON on /metrics
+	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		cache.mutex.RLock()
+		defer cache.mutex.RUnlock()
+
+		json := []byte(fmt.Sprintf(`{"hits": %d, "requests": %d}`, cache.metrics.Hits, cache.metrics.RequestCount))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(json)
+	})
+
+	// Serve cached or fetched content
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL.Query().Get("url")
 		if url == "" {
@@ -59,11 +86,11 @@ func main() {
 			return
 		}
 
-		if entry, ok := cache.Get(url); ok && time.Now().Before(entry.Expiration) {
+		if entry, ok := cache.Get(url); ok {
 			// Serve cached content
 			w.Header().Set("Content-Type", entry.ContentType)
 			w.Write(entry.Content)
-			fmt.Println("Served from cache:", url)
+			log.Println("Served from cache:", url)
 			return
 		}
 
@@ -92,9 +119,9 @@ func main() {
 		// Serve fetched content
 		w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 		w.Write(content)
-		fmt.Println("Fetched and cached:", url)
+		log.Println("Fetched and cached:", url)
 	})
 
-	fmt.Println("Server started on :8080")
+	log.Println("Server started on :8080")
 	http.ListenAndServe(":8080", nil)
 }
