@@ -39,7 +39,7 @@ func NewCache() *Cache {
 }
 
 // Get retrieves a cached entry by key
-func (c *Cache) Get(key string) (CacheEntry, bool) {
+func (c *Cache) Get(key string) (*CacheEntry, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	entry, ok := c.entries[key]
@@ -47,12 +47,10 @@ func (c *Cache) Get(key string) (CacheEntry, bool) {
 	if ok && time.Now().Before(entry.Expiration) {
 		c.metrics.RequestCount++
 		c.metrics.Hits++
-	} else if ok {
-		// Entry has expired
-		return entry, false
+		return &entry, true
 	}
 
-	return entry, ok
+	return nil, false
 }
 
 // Set inserts or updates a cached entry
