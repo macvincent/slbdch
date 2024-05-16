@@ -1,36 +1,39 @@
 package consistent_hash
 
 import (
-	"crypto/sha256"
+	"fmt"
+	"math/rand/v2"
 	"sort"
 )
 
 type consistentHash struct {
-	// maps virtual nodes hash to their IP addresses
-	vnodeHashToAddress map[byte]string
+	// maps virtual nodes value in cycle to their IP addresses
+	vnodeHashToAddress map[uint32]string
 	// sorted list of virtual nodes
-	sortedVnodeHash []byte
+	sortedVnodeHash []uint32
 	replicaPerNode  int
+}
+
+func (ch consistentHash) getReplicaHashValues(ip string) []uint32 {
+	hashValues := make([]uint32, 0)
+	for replicaNumber := 0; replicaNumber < ch.replicaPerNode; replicaNumber++ {
+		hashValues = append(hashValues, getTrieKey(fmt.Sprintf("%s-%d", ip, replicaNumber)))
+	}
+	return hashValues
 }
 
 func NewConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash {
 	ch := &consistentHash{
-		vnodeHashToAddress: make(map[byte]string),
-		sortedVnodeHash:    make([]byte, 0),
+		vnodeHashToAddress: make(map[uint32]string),
+		sortedVnodeHash:    make([]uint32, 0),
 		replicaPerNode:     replicaPerNode,
 	}
 
-	hashFunction := sha256.New()
-
 	// Add IP addresses to the hash table
 	for _, ip := range ipAddresses {
-		hashFunction.Write([]byte(ip))
-		virtualNodePositions := hashFunction.Sum(nil)
-		hashFunction.Reset()
-
-		for i := 31; i > 31-replicaPerNode; i-- {
-			ch.sortedVnodeHash = append(ch.sortedVnodeHash, virtualNodePositions[i])
-			ch.vnodeHashToAddress[virtualNodePositions[i]] = ip
+		for _, replica_hash := range ch.getReplicaHashValues(ip) {
+			ch.sortedVnodeHash = append(ch.sortedVnodeHash, replica_hash)
+			ch.vnodeHashToAddress[replica_hash] = ip
 		}
 	}
 
@@ -43,9 +46,11 @@ func NewConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash
 }
 
 func (ch *consistentHash) ValueLookup(value string) string {
-	hashFunction := sha256.New()
-	hashFunction.Write([]byte(value))
-	hash := hashFunction.Sum(nil)[31]
+	if len(ch.sortedVnodeHash) == 0 {
+		return fmt.Errorf("no nodes available").Error()
+	}
+
+	hash := getTrieKey(value)
 
 	// find the next virtual node that is clockwise to the given hash
 	index := sort.Search(len(ch.sortedVnodeHash), func(i int) bool {
@@ -60,23 +65,44 @@ func (ch *consistentHash) ValueLookup(value string) string {
 }
 
 func (ch *consistentHash) DeleteNode(ip string) {
-	hashFunction := sha256.New()
-	hashFunction.Write([]byte(ip))
-	virtualNodePositions := hashFunction.Sum(nil)
-	hashFunction.Reset()
-
-	for i := 31; i > 31-ch.replicaPerNode; i-- {
-		nodePosition := virtualNodePositions[i]
-		// Delete from vnodeHashToAddress
-		delete(ch.vnodeHashToAddress, nodePosition)
+	for _, replica_hash := range ch.getReplicaHashValues(ip) {
+		delete(ch.vnodeHashToAddress, replica_hash)
 
 		// Delete from sortedVnodeHash
 		index := sort.Search(len(ch.sortedVnodeHash), func(i int) bool {
-			return ch.sortedVnodeHash[i] >= nodePosition
+			return ch.sortedVnodeHash[i] >= replica_hash
 		})
 
-		if index < len(ch.sortedVnodeHash) && ch.sortedVnodeHash[index] == nodePosition {
+		if index < len(ch.sortedVnodeHash) && ch.sortedVnodeHash[index] == replica_hash {
 			ch.sortedVnodeHash = append(ch.sortedVnodeHash[:index], ch.sortedVnodeHash[index+1:]...)
 		}
 	}
+}
+
+// Thus funciton is used soley for testing purposes
+func CycleMain() {
+	nodeAddresses := []string{"8.8.8.8", "1.1.1.1", "208.67.222.222", "208.67.220.220", "9.9.9.9"}
+	replicaPerNode := 10
+
+	consistentHash := NewConsistentHash(nodeAddresses, replicaPerNode)
+
+	ipAddressCount := make(map[string]int)
+
+	for i := 0; i < replicaPerNode*1000; i++ {
+		url := fmt.Sprintf("www.%v.com", rand.IntN(100000))
+		ip := consistentHash.ValueLookup(url)
+		ipAddressCount[ip]++
+	}
+
+	// print the number of url values per IP address
+	for ip, count := range ipAddressCount {
+		fmt.Printf("IP: %v, Count: %v\n", ip, count)
+	}
+	fmt.Println("Ideal Count Per Node: ", replicaPerNode*1000/len(nodeAddresses))
+
+	for _, ip := range nodeAddresses {
+		consistentHash.DeleteNode(ip)
+	}
+
+	fmt.Println(consistentHash.ValueLookup("www.google.com"))
 }
