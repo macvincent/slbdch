@@ -56,6 +56,12 @@ func (main Main) serve() {
 
 		// Find the IP address of the node that will serve the URL
 		ip := consistentHash.Search(url)
+
+		for time.Now().Sub(main.nodeTimestampMap[ip]) > 15*time.Second {
+			consistentHash.DeleteNode(ip)
+			ip = consistentHash.Search(url)
+		}
+
 		// Fetch content from the web
 		resp, err := http.Get(fmt.Sprintf("http://%v:8080?url=%v", ip, url))
 
@@ -85,9 +91,9 @@ func main() {
 	nodeTimestampMap := make(map[string]time.Time)
 	nodeAddresses := []string{"34.125.246.49", "34.125.32.120"}
 
-	// Initialize for time.Now() + 10 seconds to allow for starting
+	// Initialize for time.Now() + 60 seconds to allow for starting
 	// everything up
-	timestamp := time.Now().Add(10 * time.Second)
+	timestamp := time.Now().Add(60 * time.Second)
 	for _, nodeAddress := range nodeAddresses {
 		nodeTimestampMap[nodeAddress] = timestamp
 	}
