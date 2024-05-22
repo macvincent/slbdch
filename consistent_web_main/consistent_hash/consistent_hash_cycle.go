@@ -97,20 +97,16 @@ func CycleMain() {
 	consistentHash := NewConsistentHash(nodeMap)
 
 	ipAddressCount := make(map[string]int)
-
-	for i := 0; i < 1000; i++ {
+	numCalls := 10000
+	for i := 0; i < numCalls; i++ {
 		url := fmt.Sprintf("www.%v.com", rand.IntN(100000))
 		ip := consistentHash.ValueLookup(url)
 		ipAddressCount[ip]++
 	}
 
-	// print the number of url values per IP address
-	for ip, count := range ipAddressCount {
-		fmt.Printf("IP: %v, Count: %v\n", ip, count)
-	}
-	fmt.Println("Ideal Count Per Node: ")
+	fmt.Println("Expected vs True Count Per Node: ")
 	for ip, node := range nodeMap {
-		fmt.Printf("IP: %v, Count: %v\n", ip, node.Replicas*1000/replica_count)
+		fmt.Printf("IP: %v, Expected Count: %v, True Count: %v\n", ip, node.Replicas*numCalls/replica_count, ipAddressCount[ip])
 	}
 
 	// Delete a node

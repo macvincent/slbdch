@@ -3,7 +3,9 @@ package consistent_hash
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"log"
+	"math/rand/v2"
 	"strconv"
 	"time"
 )
@@ -117,4 +119,38 @@ func deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {
 		return nil
 	}
 	return node
+}
+
+// Thus funciton is used soley for testing purposes
+func KademliaMain() {
+	timestamp := time.Now().Add(60 * time.Second)
+	nodeList := []ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 10}, {IP: "10.30.147.20", Timestamp: timestamp, Replicas: 3}}
+	replica_count := 0
+
+	nodeMap := make(map[string]ServerNode)
+	for _, node := range nodeList {
+		nodeMap[node.IP] = node
+		replica_count += node.Replicas
+	}
+	consistentHash := NewTrie(nodeMap)
+
+	ipAddressCount := make(map[string]int)
+	numCalls := 10000
+	for i := 0; i < numCalls; i++ {
+		url := fmt.Sprintf("www.%v.com", rand.IntN(100000))
+		ip := consistentHash.Search(url)
+		ipAddressCount[ip]++
+	}
+
+	fmt.Println("Expected vs True Count Per Node: ")
+	for ip, node := range nodeMap {
+		fmt.Printf("IP: %v, Expected Count: %v, True Count: %v\n", ip, node.Replicas*numCalls/replica_count, ipAddressCount[ip])
+	}
+
+	// Delete a node
+	for ip := range nodeMap {
+		consistentHash.DeleteNode(ip)
+	}
+
+	fmt.Println(consistentHash.Search("www.google.com"))
 }
