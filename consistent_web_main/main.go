@@ -166,7 +166,7 @@ func main() {
 	nodeTimestampMap := make(map[string]time.Time)
 	nodeAddresses := []string{"localhost"}
 
-	// Initialize for time.Now() + 60 seconds to allow for starting
+	// Initialize for time.Now() + 500 seconds to allow for starting
 	// everything up
 	timestamp := time.Now().Add(500 * time.Second)
 	for _, nodeAddress := range nodeAddresses {

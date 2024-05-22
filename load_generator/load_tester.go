@@ -54,7 +54,7 @@ func GenerateRequests(urlFrequencies map[string]int) []string {
 	return requests
 }
 
-func worker(client *http.Client, masterNode string, jobs <-chan string, wg *sync.WaitGroup, successCounter *int, failCounter *int, mutex *sync.Mutex) {
+func worker(client *http.Client, masterNode string, jobs <-chan string, wg *sync.WaitGroup, successCounter *int, failCounter *int, mutex *sync.Mutex, w int) {
 	defer wg.Done()
 
 	for rawURL := range jobs {
@@ -73,7 +73,7 @@ func worker(client *http.Client, masterNode string, jobs <-chan string, wg *sync
 		mutex.Lock()
 		*successCounter++
 		mutex.Unlock()
-		log.Printf("Successfully sent request to %s\n", masterURL)
+		log.Printf("Successfully sent request to %s by worker %d\n", masterURL, w)
 	}
 }
 
@@ -107,7 +107,7 @@ func main() {
 	// Start workers
 	for w := 0; w < numWorkers; w++ {
 		wg.Add(1)
-		go worker(client, masterNode, jobs, &wg, &successCounter, &failCounter, &mutex)
+		go worker(client, masterNode, jobs, &wg, &successCounter, &failCounter, &mutex, w)
 	}
 
 	// Send jobs to the workers
