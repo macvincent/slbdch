@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"go.uber.org/zap"
+    "go.uber.org/zap/zapcore"
 	"math"
 	"math/rand"
 	"net/http"
@@ -73,6 +74,32 @@ func (main Main) processPostRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (main Main) serve() {
+	// Create logger configuration with asynchronous logging enabled
+	cfg := zap.Config{
+		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),
+		Development: true,
+		Encoding:    "json",
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "time",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.CapitalLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+
+	logger, _ := cfg.Build()
+	defer logger.Sync()
+
+
 	consistentHash := consistent_hash.NewTrie(main.nodeAddresses, main.replicaPerNode)
 
 	// TODO figure out best threshold / k value
@@ -101,20 +128,20 @@ func (main Main) serve() {
 		value, exists := hotUrls.Get(url)
 		if exists {
 			if value.Average >= threshhold {
-				log.Println("Threshold reached, randomly dispersing.")
+				logger.Info("Threshold reached, randomly dispersing.")
 				ip = main.nodeAddresses[rand.Intn(len(main.nodeAddresses))]
 			} else {
 				ip = consistentHash.Search(url)
 			}
 
 			if value.PastTimeRequest == now {
-				log.Println("Same request in current second, calculating moving average.")
+				logger.Info("Same request in current second, calculating moving average.")
 				hotUrls.Set(url, HotKeyEntry{
 					Average:         value.Average + 1,
 					PastTimeRequest: value.PastTimeRequest,
 				})
 			} else {
-				log.Println("Moving average update for time of different second.")
+				logger.Info("Moving average update for time of different second.")
 
 				seconds := (float64)(now - value.PastTimeRequest)
 				newAverage := value.Average*math.Pow(k, seconds) + 1
@@ -124,7 +151,7 @@ func (main Main) serve() {
 				})
 			}
 		} else {
-			log.Println("Starting entry of moving average.")
+			logger.Info("Starting entry of moving average.")
 			ip = consistentHash.Search(url)
 			hotUrls.Set(url, HotKeyEntry{
 				Average:         1,
@@ -142,7 +169,7 @@ func (main Main) serve() {
 	})
 
 	serveAddr := fmt.Sprintf(":%d", main.mainPort)
-	log.Println("Server started on ", serveAddr)
+	fmt.Println("Server started on ", serveAddr)
 	http.ListenAndServe(serveAddr, nil)
 }
 

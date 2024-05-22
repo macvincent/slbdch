@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"go.uber.org/zap"
+    "go.uber.org/zap/zapcore"
 	"io"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -62,11 +63,36 @@ func (c *Cache) Set(key string, entry CacheEntry) {
 }
 
 func main() {
+	// Create logger configuration with asynchronous logging enabled
+	cfg := zap.Config{
+		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),
+		Development: true,
+		Encoding:    "json",
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "time",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.CapitalLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+
+	logger, _ := cfg.Build()
+	defer logger.Sync()
+
 	cache := NewCache()
 
 	httpAddr := flag.String("http", ":8080", "HTTP service address")
 
-	log.Printf("HTTP service listening on %s", *httpAddr)
+	fmt.Println("HTTP service listening on ", *httpAddr)
 
 	// Expose metrics as JSON on /metrics
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +116,7 @@ func main() {
 			// Serve cached content
 			w.Header().Set("Content-Type", entry.ContentType)
 			w.Write(entry.Content)
-			log.Println("Served from cache:", url)
+			logger.Info("Served from cache", zap.String("URL", url))
 			return
 		}
 
@@ -119,9 +145,9 @@ func main() {
 		// Serve fetched content
 		w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 		w.Write(content)
-		log.Println("Fetched and cached:", url)
+		logger.Info("Fetched and cached", zap.String("URL", url))
 	})
 
-	log.Println("Server started on :8080")
+	fmt.Println("Server started on :8080")
 	http.ListenAndServe(":8080", nil)
 }
