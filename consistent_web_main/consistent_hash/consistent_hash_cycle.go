@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"sort"
+	"time"
 )
 
 type consistentHash struct {
@@ -11,26 +12,27 @@ type consistentHash struct {
 	vnodeHashToAddress map[uint32]string
 	// sorted list of virtual nodes
 	sortedVnodeHash []uint32
-	replicaPerNode  int
+	nodeMap         map[string]ServerNode
 }
 
 func (ch consistentHash) getReplicaHashValues(ip string) []uint32 {
 	hashValues := make([]uint32, 0)
-	for replicaNumber := 0; replicaNumber < ch.replicaPerNode; replicaNumber++ {
+	replica_count := ch.nodeMap[ip].Replicas
+	for replicaNumber := 0; replicaNumber < replica_count; replicaNumber++ {
 		hashValues = append(hashValues, getTrieKey(fmt.Sprintf("%s-%d", ip, replicaNumber)))
 	}
 	return hashValues
 }
 
-func NewConsistentHash(ipAddresses []string, replicaPerNode int) *consistentHash {
+func NewConsistentHash(nodeMap map[string]ServerNode) *consistentHash {
 	ch := &consistentHash{
 		vnodeHashToAddress: make(map[uint32]string),
 		sortedVnodeHash:    make([]uint32, 0),
-		replicaPerNode:     replicaPerNode,
+		nodeMap:            nodeMap,
 	}
 
 	// Add IP addresses to the hash table
-	for _, ip := range ipAddresses {
+	for ip := range nodeMap {
 		for _, replica_hash := range ch.getReplicaHashValues(ip) {
 			ch.sortedVnodeHash = append(ch.sortedVnodeHash, replica_hash)
 			ch.vnodeHashToAddress[replica_hash] = ip
@@ -76,19 +78,27 @@ func (ch *consistentHash) DeleteNode(ip string) {
 		if index < len(ch.sortedVnodeHash) && ch.sortedVnodeHash[index] == replica_hash {
 			ch.sortedVnodeHash = append(ch.sortedVnodeHash[:index], ch.sortedVnodeHash[index+1:]...)
 		}
+
+		delete(ch.nodeMap, ip)
 	}
 }
 
 // Thus funciton is used soley for testing purposes
 func CycleMain() {
-	nodeAddresses := []string{"8.8.8.8", "1.1.1.1", "208.67.222.222", "208.67.220.220", "9.9.9.9"}
-	replicaPerNode := 10
+	timestamp := time.Now().Add(60 * time.Second)
+	nodeList := []ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 10}, {IP: "10.30.147.20", Timestamp: timestamp, Replicas: 3}}
+	replica_count := 0
 
-	consistentHash := NewConsistentHash(nodeAddresses, replicaPerNode)
+	nodeMap := make(map[string]ServerNode)
+	for _, node := range nodeList {
+		nodeMap[node.IP] = node
+		replica_count += node.Replicas
+	}
+	consistentHash := NewConsistentHash(nodeMap)
 
 	ipAddressCount := make(map[string]int)
 
-	for i := 0; i < replicaPerNode*1000; i++ {
+	for i := 0; i < 1000; i++ {
 		url := fmt.Sprintf("www.%v.com", rand.IntN(100000))
 		ip := consistentHash.ValueLookup(url)
 		ipAddressCount[ip]++
@@ -98,9 +108,13 @@ func CycleMain() {
 	for ip, count := range ipAddressCount {
 		fmt.Printf("IP: %v, Count: %v\n", ip, count)
 	}
-	fmt.Println("Ideal Count Per Node: ", replicaPerNode*1000/len(nodeAddresses))
+	fmt.Println("Ideal Count Per Node: ")
+	for ip, node := range nodeMap {
+		fmt.Printf("IP: %v, Count: %v\n", ip, node.Replicas*1000/replica_count)
+	}
 
-	for _, ip := range nodeAddresses {
+	// Delete a node
+	for ip := range nodeMap {
 		consistentHash.DeleteNode(ip)
 	}
 

@@ -5,7 +5,14 @@ import (
 	"encoding/binary"
 	"log"
 	"strconv"
+	"time"
 )
+
+type ServerNode struct {
+	IP        string
+	Timestamp time.Time
+	Replicas  int
+}
 
 type TrieNode struct {
 	children  [2]*TrieNode
@@ -14,23 +21,24 @@ type TrieNode struct {
 }
 
 type Trie struct {
-	root           *TrieNode
-	replicaPerNode int
+	root    *TrieNode
+	nodeMap map[string]ServerNode
 }
 
 func newNode() *TrieNode {
 	return &TrieNode{}
 }
 
-func NewTrie(ipAddresses []string, replicaPerNode int) *Trie {
+func NewTrie(nodeMap map[string]ServerNode) *Trie {
 	trie := &Trie{
-		root:           newNode(),
-		replicaPerNode: replicaPerNode,
+		root:    newNode(),
+		nodeMap: nodeMap,
 	}
 
 	// Add IP addresses to the hash table
-	for _, ip := range ipAddresses {
-		for replica_number := 0; replica_number < replicaPerNode; replica_number++ {
+	for ip := range nodeMap {
+		replica_count := nodeMap[ip].Replicas
+		for replica_number := 0; replica_number < replica_count; replica_number++ {
 			trie.insert(ip, replica_number)
 			log.Printf("Inserted IP %v, replica number %v\n", ip, replica_number)
 		}
@@ -78,7 +86,8 @@ func (t *Trie) Search(key string) string {
 func (t *Trie) DeleteNode(ip_address string) {
 	// TODO: Add locking logic here so that deleteNode is not called
 	// while we are reading
-	for replica_number := 0; replica_number < t.replicaPerNode; replica_number++ {
+	replica_count := t.nodeMap[ip_address].Replicas
+	for replica_number := 0; replica_number < replica_count; replica_number++ {
 		trie_key := getTrieKey(ip_address + strconv.Itoa(replica_number))
 		t.root = deleteRecursive(t.root, trie_key, 31)
 	}
