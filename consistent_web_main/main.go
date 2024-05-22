@@ -19,18 +19,18 @@ type Main struct {
 }
 
 type HotKeyEntry struct {
-	Average          float64
-	PastTimeRequest  int64
+	Average         float64
+	PastTimeRequest int64
 }
 
 type HotKeys struct {
-	KeyMap        map[string] HotKeyEntry
-	mutex   sync.RWMutex
+	KeyMap map[string]HotKeyEntry
+	mutex  sync.RWMutex
 }
 
 func Keys() *HotKeys {
 	return &HotKeys{
-		KeyMap: make(map[string] HotKeyEntry),
+		KeyMap: make(map[string]HotKeyEntry),
 	}
 }
 
@@ -99,7 +99,7 @@ func (main Main) serve() {
 		ip := ""
 		// Find the IP address of the node that will serve the URL if url is hot
 		value, exists := hotUrls.Get(url)
-		if exists  {
+		if exists {
 			if value.Average >= threshhold {
 				fmt.Println("Threshold reached, randomly dispersing.")
 				ip = main.nodeAddresses[rand.Intn(len(main.nodeAddresses))]
@@ -110,28 +110,28 @@ func (main Main) serve() {
 			if value.PastTimeRequest == now {
 				fmt.Println("Same request in current second, calculating moving average.")
 				hotUrls.Set(url, HotKeyEntry{
-					Average: value.Average + 1,
-					PastTimeRequest:  value.PastTimeRequest,
+					Average:         value.Average + 1,
+					PastTimeRequest: value.PastTimeRequest,
 				})
 			} else {
 				fmt.Println("Moving average update for time of different second.")
 
 				seconds := (float64)(now - value.PastTimeRequest)
-				newAverage := value.Average * math.Pow(k, seconds) + 1
+				newAverage := value.Average*math.Pow(k, seconds) + 1
 				hotUrls.Set(url, HotKeyEntry{
-					Average: newAverage,
-					PastTimeRequest:  now,
+					Average:         newAverage,
+					PastTimeRequest: now,
 				})
 			}
 		} else {
 			fmt.Println("Starting entry of moving average.")
 			ip = consistentHash.Search(url)
 			hotUrls.Set(url, HotKeyEntry{
-				Average: 1,
+				Average:         1,
 				PastTimeRequest: now,
 			})
 		}
-		
+
 		for time.Now().Sub(main.nodeTimestampMap[ip]) > 15*time.Second {
 			consistentHash.DeleteNode(ip)
 			ip = consistentHash.Search(url)
@@ -164,11 +164,11 @@ func (main Main) serve() {
 
 func main() {
 	nodeTimestampMap := make(map[string]time.Time)
-	nodeAddresses := []string{"localhost", "10.30.147.20"}
+	nodeAddresses := []string{"localhost"}
 
 	// Initialize for time.Now() + 60 seconds to allow for starting
 	// everything up
-	timestamp := time.Now().Add(60 * time.Second)
+	timestamp := time.Now().Add(500 * time.Second)
 	for _, nodeAddress := range nodeAddresses {
 		nodeTimestampMap[nodeAddress] = timestamp
 	}
