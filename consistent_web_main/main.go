@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"log"
 	"math"
 	"math/rand"
 	"net/http"
@@ -101,20 +101,20 @@ func (main Main) serve() {
 		value, exists := hotUrls.Get(url)
 		if exists  {
 			if value.Average >= threshhold {
-				fmt.Println("Threshold reached, randomly dispersing.")
+				log.Println("Threshold reached, randomly dispersing.")
 				ip = main.nodeAddresses[rand.Intn(len(main.nodeAddresses))]
 			} else {
 				ip = consistentHash.Search(url)
 			}
 
 			if value.PastTimeRequest == now {
-				fmt.Println("Same request in current second, calculating moving average.")
+				log.Println("Same request in current second, calculating moving average.")
 				hotUrls.Set(url, HotKeyEntry{
 					Average: value.Average + 1,
 					PastTimeRequest:  value.PastTimeRequest,
 				})
 			} else {
-				fmt.Println("Moving average update for time of different second.")
+				log.Println("Moving average update for time of different second.")
 
 				seconds := (float64)(now - value.PastTimeRequest)
 				newAverage := value.Average * math.Pow(k, seconds) + 1
@@ -124,7 +124,7 @@ func (main Main) serve() {
 				})
 			}
 		} else {
-			fmt.Println("Starting entry of moving average.")
+			log.Println("Starting entry of moving average.")
 			ip = consistentHash.Search(url)
 			hotUrls.Set(url, HotKeyEntry{
 				Average: 1,
@@ -137,34 +137,18 @@ func (main Main) serve() {
 			ip = consistentHash.Search(url)
 		}
 
-		// Fetch content from the web
-		resp, err := http.Get(fmt.Sprintf("http://%v:8080?url=%v", ip, url))
-
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error fetching URL: %v", err), http.StatusInternalServerError)
-			return
-		}
-		defer resp.Body.Close()
-
-		content, err := io.ReadAll(resp.Body)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error reading response body: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		// Serve fetched content
-		w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
-		w.Write(content)
+		// Send request to found ip address
+		http.Redirect(w, r, fmt.Sprintf("http://%v:8080?url=%v", ip, url), http.StatusTemporaryRedirect)
 	})
 
 	serveAddr := fmt.Sprintf(":%d", main.mainPort)
-	fmt.Println("Server started on ", serveAddr)
+	log.Println("Server started on ", serveAddr)
 	http.ListenAndServe(serveAddr, nil)
 }
 
 func main() {
 	nodeTimestampMap := make(map[string]time.Time)
-	nodeAddresses := []string{"localhost", "10.30.147.20"}
+	nodeAddresses := []string{"localhost"}
 
 	// Initialize for time.Now() + 60 seconds to allow for starting
 	// everything up
