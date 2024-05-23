@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -56,17 +57,21 @@ func (main Main) processPostRequest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
 		return
 	}
-
+	log.Println(r)
 	// Get the port from the form data
-	node := r.Form.Get("node")
-	if node == "" {
-		http.Error(w, "Node parameter is missing", http.StatusBadRequest)
+	ip_address, _, err := net.SplitHostPort(r.RemoteAddr)
+
+	if ip_address == "" {
+		http.Error(w, "Cannot get IP address", http.StatusBadRequest)
 		return
+	}
+	if ip_address == "::1" {
+		ip_address = "localhost" // localhost or 127.0.0.1 is equivalent to ::1
 	}
 
 	// Process the heartbeat (for example, you can log it)
-	fmt.Printf("Received heartbeat from node %s\n", node)
-	main.nodeTimestampMap[node] = time.Now()
+	fmt.Printf("Received heartbeat from node %s\n", ip_address)
+	main.nodeTimestampMap[ip_address] = time.Now()
 
 	// Respond with a success message
 	w.WriteHeader(http.StatusOK)
