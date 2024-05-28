@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func SendInsertNodeCommand(mainAddr string, ip_address string, replica_count int) {
+func SendInsertNodeCommand(mainAddr string, ip_address string, replica_count string) {
 	// Construct the URL for the heartbeat endpoint
 	endpoint := fmt.Sprintf("http://%s/insert", mainAddr)
 

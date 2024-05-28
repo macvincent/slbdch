@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 	"web_main/consistent_hash"
@@ -122,8 +123,13 @@ func (main Main) processInsert(w http.ResponseWriter, r *http.Request, consisten
 		http.Error(w, "Some parameter is missing", http.StatusBadRequest)
 		return
 	}
+	new_node_replica_count_int, err := strconv.Atoi(new_node_replica_count)
+	if err != nil {
+		http.Error(w, "Error parsing replica count", http.StatusBadRequest)
+		return
+	}
 
-	consistentHash.InsertNode(new_node_ip_address, new_node_replica_count)
+	consistentHash.InsertNode(new_node_ip_address, new_node_replica_count_int)
 
 	// Process the heartbeat (for example, you can log it)
 	fmt.Printf("Inserted new node %s\n", ip_address)
