@@ -87,11 +87,11 @@ func (t *Trie) DeleteNode(ip_address string) {
 	replica_count := t.nodeMap[ip_address].Replicas
 	for replica_number := 0; replica_number < replica_count; replica_number++ {
 		trie_key := getTrieKey(ip_address + strconv.Itoa(replica_number))
-		t.root = deleteRecursive(t.root, trie_key, 31)
+		t.root = t.deleteRecursive(t.root, trie_key, 31)
 	}
 }
 
-func deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {
+func (t *Trie) deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {
 	if node == nil {
 		return nil
 	}
@@ -107,11 +107,11 @@ func deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {
 	} else {
 		// Otherwise, we recursively call the delete function on the child
 		// node
-		node.children[index] = deleteRecursive(node.children[index], trie_key, bitIndex-1)
+		node.children[index] = t.deleteRecursive(node.children[index], trie_key, bitIndex-1)
 	}
 
 	// If both children of a node are nil, we simply return nil.
-	if node.children[index] == nil && node.children[1-index] == nil {
+	if node.children[index] == nil && node.children[1-index] == nil && node != t.root {
 		return nil
 	}
 	return node
