@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-	"go.uber.org/zap"
-    "go.uber.org/zap/zapcore"
+	"log"
 	"math"
 	"math/rand"
 	"net"
@@ -11,6 +10,9 @@ import (
 	"sync"
 	"time"
 	"web_main/consistent_hash"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Main struct {
@@ -51,7 +53,7 @@ func (hk *HotKeys) Set(url string, entry HotKeyEntry) {
 	hk.KeyMap[url] = entry
 }
 
-func (main Main) processPostRequest(w http.ResponseWriter, r *http.Request) {
+func (main Main) processHeartbeat(w http.ResponseWriter, r *http.Request) {
 	// TODO: change this later based upon IP address
 	err := r.ParseForm()
 	if err != nil {
@@ -73,6 +75,69 @@ func (main Main) processPostRequest(w http.ResponseWriter, r *http.Request) {
 	// Process the heartbeat (for example, you can log it)
 	fmt.Printf("Received heartbeat from node %s\n", ip_address)
 	main.nodeTimestampMap[ip_address] = time.Now()
+
+	// Respond with a success message
+	w.WriteHeader(http.StatusOK)
+}
+
+func (main Main) processInsert(w http.ResponseWriter, r *http.Request, consistentHash *consistent_hash.Trie) {
+	// Get the port from the form data
+	ip_address, _, err := net.SplitHostPort(r.RemoteAddr)
+
+	if ip_address != "::1" {
+		http.Error(w, "Cannot identify valid host", http.StatusBadRequest)
+		return
+	}
+
+	// TODO: change this later based upon IP address
+	err = r.ParseForm()
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
+		return
+	}
+
+	new_node_ip_address := r.Form.Get("ip_address")
+	new_node_replica_count := r.Form.Get("replica_count")
+	if new_node_ip_address == "" || new_node_replica_count == "" {
+		http.Error(w, "Some parameter is missing", http.StatusBadRequest)
+		return
+	}
+
+	consistentHash.InsertNode(new_node_ip_address, new_node_replica_count)
+
+	// Process the heartbeat (for example, you can log it)
+	fmt.Printf("Inserted new node %s\n", ip_address)
+
+	// Respond with a success message
+	w.WriteHeader(http.StatusOK)
+}
+
+func (main Main) processDelete(w http.ResponseWriter, r *http.Request, consistentHash *consistent_hash.Trie) {
+	// Get the port from the form data
+	ip_address, _, err := net.SplitHostPort(r.RemoteAddr)
+
+	if ip_address != "::1" {
+		http.Error(w, "Cannot identify valid host", http.StatusBadRequest)
+		return
+	}
+
+	// TODO: change this later based upon IP address
+	err = r.ParseForm()
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
+		return
+	}
+
+	remove_ip_address := r.Form.Get("ip_address")
+	if remove_ip_address == "" {
+		http.Error(w, "Some parameter is missing", http.StatusBadRequest)
+		return
+	}
+
+	consistentHash.DeleteNode(remove_ip_address)
+
+	// Process the heartbeat (for example, you can log it)
+	fmt.Printf("Deleted node %s\n", ip_address)
 
 	// Respond with a success message
 	w.WriteHeader(http.StatusOK)
@@ -104,7 +169,6 @@ func (main Main) serve() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-
 	consistentHash := consistent_hash.NewTrie(main.nodeAddresses, main.replicaPerNode)
 
 	// TODO figure out best threshold / k value
@@ -115,7 +179,15 @@ func (main Main) serve() {
 
 	// Start the heartbeat server
 	http.Handle("/heartbeat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		main.processPostRequest(w, r)
+		main.processHeartbeat(w, r)
+	}))
+
+	http.Handle("/insert", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		main.processInsert(w, r, consistentHash)
+	}))
+
+	http.Handle("/delete", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		main.processDelete(w, r, consistentHash)
 	}))
 
 	// Start the main server
