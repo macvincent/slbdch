@@ -231,7 +231,7 @@ func (main Main) serve() {
 		value, exists := hotUrls.Get(url)
 		if exists {
 			if value.Average >= threshhold {
-				logger.Info("Threshold reached, randomly dispersing.")
+				//logger.Info("Threshold reached, randomly dispersing.")
 				ip = main.nodeAddresses[rand.Intn(len(main.nodeAddresses))]
 			} else {
 				ip = main.consistentHash.Search(url)
@@ -244,7 +244,7 @@ func (main Main) serve() {
 					PastTimeRequest: value.PastTimeRequest,
 				})
 			} else {
-				logger.Info("Moving average update for time of different second.")
+				//logger.Info("Moving average update for time of different second.")
 
 				seconds := (float64)(now - value.PastTimeRequest)
 				newAverage := value.Average*math.Pow(k, seconds) + 1
@@ -254,7 +254,7 @@ func (main Main) serve() {
 				})
 			}
 		} else {
-			logger.Info("Starting entry of moving average.")
+			//logger.Info("Starting entry of moving average.")
 			ip = main.consistentHash.Search(url)
 			hotUrls.Set(url, HotKeyEntry{
 				Average:         1,

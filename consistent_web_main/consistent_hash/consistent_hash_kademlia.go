@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand/v2"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -25,6 +26,7 @@ type TrieNode struct {
 type Trie struct {
 	root    *TrieNode
 	nodeMap map[string]ServerNode
+	mux sync.RWMutex
 }
 
 func newNode() *TrieNode {
@@ -36,6 +38,7 @@ func NewTrie(nodeMap map[string]ServerNode) *Trie {
 		root:    newNode(),
 		nodeMap: nodeMap,
 	}
+	// Note no other thread has access to trie yet so we don't need a lock here
 
 	// Add IP addresses to the hash table
 	for ip := range nodeMap {
@@ -68,6 +71,8 @@ func (t *Trie) insert(ip_address string, replica_number int) {
 }
 
 func (t *Trie) Search(key string) string {
+	t.mux.RLock()
+	defer t.mux.RUnlock()
 	trie_key := getTrieKey(key)
 	node := t.root
 	for i := 31; i >= 0; i-- {
@@ -82,8 +87,8 @@ func (t *Trie) Search(key string) string {
 }
 
 func (t *Trie) DeleteNode(ip_address string) {
-	// TODO: Add locking logic here so that deleteNode is not called
-	// while we are reading
+	t.mux.Lock()
+	defer t.mux.Unlock()
 	replica_count := t.nodeMap[ip_address].Replicas
 	for replica_number := 0; replica_number < replica_count; replica_number++ {
 		trie_key := getTrieKey(ip_address + strconv.Itoa(replica_number))
@@ -119,6 +124,8 @@ func (t *Trie) deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *T
 }
 
 func (t *Trie) InsertNode(ip_address string, replica_count int) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
 	// Upadte replica count if the node already exists
 	if entry, ok := t.nodeMap[ip_address]; ok {
 		entry.Replicas = replica_count

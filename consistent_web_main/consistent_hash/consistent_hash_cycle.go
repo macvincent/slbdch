@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand/v2"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -14,9 +15,12 @@ type consistentHash struct {
 	// sorted list of virtual nodes
 	sortedVnodeHash []uint32
 	nodeMap         map[string]ServerNode
+	mux sync.RWMutex
 }
 
 func (ch consistentHash) getReplicaHashValues(ip string) []uint32 {
+	ch.mux.RLock()
+	defer ch.mux.RUnlock()
 	hashValues := make([]uint32, 0)
 	replica_count := ch.nodeMap[ip].Replicas
 	for replicaNumber := 0; replicaNumber < replica_count; replicaNumber++ {
@@ -31,7 +35,7 @@ func NewConsistentHash(nodeMap map[string]ServerNode) *consistentHash {
 		sortedVnodeHash:    make([]uint32, 0),
 		nodeMap:            nodeMap,
 	}
-
+	// Note no other thread has access to ch yet so we don't need a lock here
 	// Add IP addresses to the hash table
 	for ip := range nodeMap {
 		for _, replica_hash := range ch.getReplicaHashValues(ip) {
@@ -49,6 +53,8 @@ func NewConsistentHash(nodeMap map[string]ServerNode) *consistentHash {
 }
 
 func (ch *consistentHash) ValueLookup(value string) string {
+	ch.mux.RLock()
+	defer ch.mux.RUnlock()
 	if len(ch.sortedVnodeHash) == 0 {
 		return fmt.Errorf("no nodes available").Error()
 	}
@@ -68,6 +74,8 @@ func (ch *consistentHash) ValueLookup(value string) string {
 }
 
 func (ch *consistentHash) InsertNode(ip_address string, replica_count int) {
+	ch.mux.Lock()
+	defer ch.mux.Unlock()
 	// Update replica count if the node already exists
 	if entry, exists := ch.nodeMap[ip_address]; exists {
 		entry.Replicas = replica_count
@@ -92,6 +100,8 @@ func (ch *consistentHash) InsertNode(ip_address string, replica_count int) {
 }
 
 func (ch *consistentHash) DeleteNode(ip string) {
+	ch.mux.Lock()
+	defer ch.mux.Unlock()
 	for _, replica_hash := range ch.getReplicaHashValues(ip) {
 		delete(ch.vnodeHashToAddress, replica_hash)
 
