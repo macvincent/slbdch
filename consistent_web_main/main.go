@@ -52,7 +52,6 @@ func (hk *HotKeys) Set(url string, entry HotKeyEntry) {
 	hk.KeyMap[url] = entry
 }
 
-
 func NewMain(mainPort int, nodeList []consistent_hash.ServerNode) *Main {
 	main := Main{mainPort: mainPort}
 
@@ -77,7 +76,6 @@ func (main Main) updateNodeTimestamps(node string, w http.ResponseWriter) {
 }
 
 func (main Main) processHeartbeat(w http.ResponseWriter, r *http.Request) {
-	// TODO: change this later based upon IP address
 	err := r.ParseForm()
 	if err != nil {
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
@@ -112,7 +110,6 @@ func (main Main) processInsert(w http.ResponseWriter, r *http.Request, consisten
 		return
 	}
 
-	// TODO: change this later based upon IP address
 	err = r.ParseForm()
 	if err != nil {
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
@@ -144,7 +141,6 @@ func (main Main) processDelete(w http.ResponseWriter, r *http.Request, consisten
 		return
 	}
 
-	// TODO: change this later based upon IP address
 	err = r.ParseForm()
 	if err != nil {
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
@@ -191,7 +187,6 @@ func (main Main) serve() {
 
 	logger, _ := cfg.Build()
 	defer logger.Sync()
-
 
 	consistentHash := consistent_hash.NewTrie(main.nodeMap)
 
