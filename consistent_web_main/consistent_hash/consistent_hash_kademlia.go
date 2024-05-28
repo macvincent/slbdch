@@ -163,5 +163,6 @@ func KademliaMain() {
 		consistentHash.DeleteNode(ip)
 	}
 
+	consistentHash.InsertNode("localhost2", 1)
 	fmt.Println(consistentHash.Search("www.google.com"))
 }

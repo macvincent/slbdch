@@ -67,7 +67,18 @@ func (ch *consistentHash) ValueLookup(value string) string {
 }
 
 func (ch *consistentHash) InsertNode(ip_address string, replica_count int) {
+	// Add IP addresses to the node map
+	ch.nodeMap[ip_address] = ServerNode{IP: ip_address, Replicas: replica_count}
 
+	for _, replica_hash := range ch.getReplicaHashValues(ip_address) {
+		ch.sortedVnodeHash = append(ch.sortedVnodeHash, replica_hash)
+		ch.vnodeHashToAddress[replica_hash] = ip_address
+	}
+
+	// Sort the virtual nodes for easy lookup
+	sort.Slice(ch.sortedVnodeHash, func(i, j int) bool {
+		return ch.sortedVnodeHash[i] < ch.sortedVnodeHash[j]
+	})
 }
 
 func (ch *consistentHash) DeleteNode(ip string) {
@@ -113,10 +124,14 @@ func CycleMain() {
 		fmt.Printf("IP: %v, Expected Count: %v, True Count: %v\n", ip, node.Replicas*numCalls/replica_count, ipAddressCount[ip])
 	}
 
-	// Delete a node
+	// Delete all nodes
 	for ip := range nodeMap {
 		consistentHash.DeleteNode(ip)
 	}
 
+	// Insert a new node
+	consistentHash.InsertNode("localhost2", 2)
+
+	// Search for a value
 	fmt.Println(consistentHash.ValueLookup("www.google.com"))
 }

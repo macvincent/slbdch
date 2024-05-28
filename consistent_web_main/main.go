@@ -169,9 +169,15 @@ func (main Main) serve() {
 }
 
 func main() {
-	// Initialize for time.Now() + 60 seconds to allow for starting everything up
-	timestamp := time.Now().Add(60 * time.Second)
-	nodeList := []consistent_hash.ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 3}, {IP: "10.30.147.20", Timestamp: timestamp, Replicas: 3}}
-	main := NewMain(8080, nodeList)
-	main.serve()
+	runTests := true
+	if runTests {
+		consistent_hash.CycleMain()
+		consistent_hash.KademliaMain()
+	} else {
+		// Initialize for time.Now() + 60 seconds to allow for starting everything up
+		timestamp := time.Now().Add(60 * time.Second)
+		nodeList := []consistent_hash.ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 3}, {IP: "10.30.147.20", Timestamp: timestamp, Replicas: 3}}
+		main := NewMain(8080, nodeList)
+		main.serve()
+	}
 }
