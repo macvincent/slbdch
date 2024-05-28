@@ -86,7 +86,7 @@ func (main Main) processPostRequest(w http.ResponseWriter, r *http.Request) {
 	// Get the port from the form data
 	ip_address, _, err := net.SplitHostPort(r.RemoteAddr)
 
-	if ip_address == "" {
+	if err != nil || ip_address == "" {
 		http.Error(w, "Cannot get IP address", http.StatusBadRequest)
 		return
 	}
@@ -202,7 +202,7 @@ func (main Main) serve() {
 }
 
 func main() {
-	runTests := true
+	runTests := false
 	if runTests {
 		consistent_hash.CycleMain()
 		consistent_hash.KademliaMain()
