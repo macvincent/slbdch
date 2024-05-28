@@ -118,6 +118,7 @@ func deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {
 }
 
 func (t *Trie) InsertNode(ip_address string, replica_count int) {
+	// Upadte replica count if the node already exists
 	if entry, ok := t.nodeMap[ip_address]; ok {
 		entry.Replicas = replica_count
 		t.nodeMap[ip_address] = entry

@@ -2,6 +2,7 @@ package consistent_hash
 
 import (
 	"fmt"
+	"log"
 	"math/rand/v2"
 	"sort"
 	"time"
@@ -67,12 +68,21 @@ func (ch *consistentHash) ValueLookup(value string) string {
 }
 
 func (ch *consistentHash) InsertNode(ip_address string, replica_count int) {
-	// Add IP addresses to the node map
-	ch.nodeMap[ip_address] = ServerNode{IP: ip_address, Replicas: replica_count}
+	// Update replica count if the node already exists
+	if entry, exists := ch.nodeMap[ip_address]; exists {
+		entry.Replicas = replica_count
+		ch.nodeMap[ip_address] = entry
+	} else {
+		timeStamp := time.Now().Add(60 * time.Second)
+		entry := ServerNode{IP: ip_address, Timestamp: timeStamp, Replicas: replica_count}
+		ch.nodeMap[ip_address] = entry
+	}
 
-	for _, replica_hash := range ch.getReplicaHashValues(ip_address) {
+	// Insert the virtual nodes
+	for replica_number, replica_hash := range ch.getReplicaHashValues(ip_address) {
 		ch.sortedVnodeHash = append(ch.sortedVnodeHash, replica_hash)
 		ch.vnodeHashToAddress[replica_hash] = ip_address
+		log.Printf("Inserted IP %v, replica number %v\n", ip_address, replica_number)
 	}
 
 	// Sort the virtual nodes for easy lookup
