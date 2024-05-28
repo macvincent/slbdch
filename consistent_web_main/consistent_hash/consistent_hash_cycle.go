@@ -103,9 +103,9 @@ func (ch *consistentHash) DeleteNode(ip string) {
 		if index < len(ch.sortedVnodeHash) && ch.sortedVnodeHash[index] == replica_hash {
 			ch.sortedVnodeHash = append(ch.sortedVnodeHash[:index], ch.sortedVnodeHash[index+1:]...)
 		}
-
-		delete(ch.nodeMap, ip)
 	}
+	// Delete from nodeMap
+	delete(ch.nodeMap, ip)
 }
 
 // Thus funciton is used soley for testing purposes
