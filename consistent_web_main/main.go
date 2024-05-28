@@ -17,9 +17,10 @@ import (
 )
 
 type Main struct {
-	mainPort      int
-	nodeAddresses []string
-	nodeMap       map[string]consistent_hash.ServerNode
+	mainPort       int
+	nodeAddresses  []string
+	nodeMap        map[string]consistent_hash.ServerNode
+	consistentHash *consistent_hash.Trie
 }
 
 type HotKeyEntry struct {
@@ -63,6 +64,8 @@ func NewMain(mainPort int, nodeList []consistent_hash.ServerNode) *Main {
 	}
 	main.nodeMap = nodeMap
 
+	main.consistentHash = consistent_hash.NewTrie(nodeMap)
+
 	return &main
 }
 
@@ -102,11 +105,11 @@ func (main Main) processHeartbeat(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (main Main) processInsert(w http.ResponseWriter, r *http.Request, consistentHash *consistent_hash.Trie) {
+func (main Main) processInsert(w http.ResponseWriter, r *http.Request) {
 	// Get the port from the form data
 	ip_address, _, err := net.SplitHostPort(r.RemoteAddr)
 
-	if ip_address != "::1" {
+	if err != nil || ip_address != "::1" {
 		http.Error(w, "Cannot identify valid host", http.StatusBadRequest)
 		return
 	}
@@ -129,7 +132,7 @@ func (main Main) processInsert(w http.ResponseWriter, r *http.Request, consisten
 		return
 	}
 
-	consistentHash.InsertNode(new_node_ip_address, new_node_replica_count_int)
+	main.consistentHash.InsertNode(new_node_ip_address, new_node_replica_count_int)
 
 	// Process the heartbeat (for example, you can log it)
 	fmt.Printf("Inserted new node %s\n", ip_address)
@@ -138,11 +141,11 @@ func (main Main) processInsert(w http.ResponseWriter, r *http.Request, consisten
 	w.WriteHeader(http.StatusOK)
 }
 
-func (main Main) processDelete(w http.ResponseWriter, r *http.Request, consistentHash *consistent_hash.Trie) {
+func (main Main) processDelete(w http.ResponseWriter, r *http.Request) {
 	// Get the port from the form data
 	ip_address, _, err := net.SplitHostPort(r.RemoteAddr)
 
-	if ip_address != "::1" {
+	if err != nil || ip_address != "::1" {
 		http.Error(w, "Cannot identify valid host", http.StatusBadRequest)
 		return
 	}
@@ -159,7 +162,7 @@ func (main Main) processDelete(w http.ResponseWriter, r *http.Request, consisten
 		return
 	}
 
-	consistentHash.DeleteNode(remove_ip_address)
+	main.consistentHash.DeleteNode(remove_ip_address)
 
 	// Process the heartbeat (for example, you can log it)
 	fmt.Printf("Deleted node %s\n", ip_address)
@@ -194,8 +197,6 @@ func (main Main) serve() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-	consistentHash := consistent_hash.NewTrie(main.nodeMap)
-
 	// TODO figure out best threshold / k value
 	threshhold := 3.0
 	k := 0.5
@@ -208,11 +209,11 @@ func (main Main) serve() {
 	}))
 
 	http.Handle("/insert", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		main.processInsert(w, r, consistentHash)
+		main.processInsert(w, r)
 	}))
 
 	http.Handle("/delete", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		main.processDelete(w, r, consistentHash)
+		main.processDelete(w, r)
 	}))
 
 	// Start the main server
@@ -233,7 +234,7 @@ func (main Main) serve() {
 				logger.Info("Threshold reached, randomly dispersing.")
 				ip = main.nodeAddresses[rand.Intn(len(main.nodeAddresses))]
 			} else {
-				ip = consistentHash.Search(url)
+				ip = main.consistentHash.Search(url)
 			}
 
 			if value.PastTimeRequest == now {
@@ -254,7 +255,7 @@ func (main Main) serve() {
 			}
 		} else {
 			logger.Info("Starting entry of moving average.")
-			ip = consistentHash.Search(url)
+			ip = main.consistentHash.Search(url)
 			hotUrls.Set(url, HotKeyEntry{
 				Average:         1,
 				PastTimeRequest: now,
@@ -262,8 +263,8 @@ func (main Main) serve() {
 		}
 
 		for time.Since(main.nodeMap[ip].Timestamp) > 15*time.Second {
-			consistentHash.DeleteNode(ip)
-			ip = consistentHash.Search(url)
+			main.consistentHash.DeleteNode(ip)
+			ip = main.consistentHash.Search(url)
 		}
 
 		// Send request to found ip address
