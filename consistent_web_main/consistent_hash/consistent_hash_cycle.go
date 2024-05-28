@@ -66,6 +66,10 @@ func (ch *consistentHash) ValueLookup(value string) string {
 	return ch.vnodeHashToAddress[ch.sortedVnodeHash[index]]
 }
 
+func (ch *consistentHash) InsertNode(ip_address string, replica_count int) {
+
+}
+
 func (ch *consistentHash) DeleteNode(ip string) {
 	for _, replica_hash := range ch.getReplicaHashValues(ip) {
 		delete(ch.vnodeHashToAddress, replica_hash)

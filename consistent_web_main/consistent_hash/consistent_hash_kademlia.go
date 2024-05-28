@@ -39,11 +39,7 @@ func NewTrie(nodeMap map[string]ServerNode) *Trie {
 
 	// Add IP addresses to the hash table
 	for ip := range nodeMap {
-		replica_count := nodeMap[ip].Replicas
-		for replica_number := 0; replica_number < replica_count; replica_number++ {
-			trie.insert(ip, replica_number)
-			log.Printf("Inserted IP %v, replica number %v\n", ip, replica_number)
-		}
+		trie.InsertNode(ip, nodeMap[ip].Replicas)
 	}
 	return trie
 }
@@ -121,7 +117,22 @@ func deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {
 	return node
 }
 
-// Thus funciton is used soley for testing purposes
+func (t *Trie) InsertNode(ip_address string, replica_count int) {
+	if entry, ok := t.nodeMap[ip_address]; ok {
+		entry.Replicas = replica_count
+		t.nodeMap[ip_address] = entry
+	} else {
+		timestamp := time.Now().Add(60 * time.Second)
+		entry := ServerNode{IP: ip_address, Timestamp: timestamp, Replicas: replica_count}
+		t.nodeMap[ip_address] = entry
+	}
+	for replica_number := 0; replica_number < replica_count; replica_number++ {
+		t.insert(ip_address, replica_number)
+		log.Printf("Inserted IP %v, replica number %v\n", ip_address, replica_number)
+	}
+}
+
+// Thus function is used solely for testing purposes
 func KademliaMain() {
 	timestamp := time.Now().Add(60 * time.Second)
 	nodeList := []ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 10}, {IP: "10.30.147.20", Timestamp: timestamp, Replicas: 3}}
