@@ -267,7 +267,7 @@ func (main Main) serve() {
 		}
 
 		// Send request to found ip address
-		http.Redirect(w, r, fmt.Sprintf("http://%v:8080?url=%v", ip, url), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, fmt.Sprintf("http://%v:5050?url=%v", ip, url), http.StatusTemporaryRedirect)
 	})
 
 	serveAddr := fmt.Sprintf(":%d", main.mainPort)
@@ -283,7 +283,7 @@ func main() {
 	} else {
 		// Initialize for time.Now() + 60 seconds to allow for starting everything up
 		timestamp := time.Now().Add(60 * time.Second)
-		nodeList := []consistent_hash.ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 3}, {IP: "10.30.147.20", Timestamp: timestamp, Replicas: 3}}
+		nodeList := []consistent_hash.ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 1}}
 		main := NewMain(8080, nodeList)
 		main.serve()
 	}

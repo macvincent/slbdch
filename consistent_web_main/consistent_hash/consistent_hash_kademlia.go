@@ -89,6 +89,7 @@ func (t *Trie) DeleteNode(ip_address string) {
 		trie_key := getTrieKey(ip_address + strconv.Itoa(replica_number))
 		t.root = t.deleteRecursive(t.root, trie_key, 31)
 	}
+	delete(t.nodeMap, ip_address)
 }
 
 func (t *Trie) deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {

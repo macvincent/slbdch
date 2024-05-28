@@ -1,4 +1,4 @@
-package admin
+package main
 
 import (
 	"fmt"
@@ -47,7 +47,7 @@ func SendRemoveNodeCommand(mainAddr string, ip_address string) {
 
 func main() {
 	// Master address
-	masterAddr := "localhost:5050"
+	masterAddr := "localhost:8080"
 
 	if os.Args[1] == "insert" {
 		SendInsertNodeCommand(masterAddr, os.Args[2], os.Args[3])
