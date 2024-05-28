@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 	"web_main/consistent_hash"
@@ -75,8 +76,7 @@ func (main Main) updateNodeTimestamps(node string, w http.ResponseWriter) {
 	main.nodeMap[node] = nodeData
 }
 
-func (main Main) processPostRequest(w http.ResponseWriter, r *http.Request) {
-	// TODO: change this later based upon IP address
+func (main Main) processHeartbeat(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
@@ -97,6 +97,72 @@ func (main Main) processPostRequest(w http.ResponseWriter, r *http.Request) {
 	// Process the heartbeat (for example, you can log it)
 	fmt.Printf("Received heartbeat from node %s\n", ip_address)
 	main.updateNodeTimestamps(ip_address, w)
+
+	// Respond with a success message
+	w.WriteHeader(http.StatusOK)
+}
+
+func (main Main) processInsert(w http.ResponseWriter, r *http.Request, consistentHash *consistent_hash.Trie) {
+	// Get the port from the form data
+	ip_address, _, err := net.SplitHostPort(r.RemoteAddr)
+
+	if ip_address != "::1" {
+		http.Error(w, "Cannot identify valid host", http.StatusBadRequest)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
+		return
+	}
+
+	new_node_ip_address := r.Form.Get("ip_address")
+	new_node_replica_count := r.Form.Get("replica_count")
+	if new_node_ip_address == "" || new_node_replica_count == "" {
+		http.Error(w, "Some parameter is missing", http.StatusBadRequest)
+		return
+	}
+	new_node_replica_count_int, err := strconv.Atoi(new_node_replica_count)
+	if err != nil {
+		http.Error(w, "Error parsing replica count", http.StatusBadRequest)
+		return
+	}
+
+	consistentHash.InsertNode(new_node_ip_address, new_node_replica_count_int)
+
+	// Process the heartbeat (for example, you can log it)
+	fmt.Printf("Inserted new node %s\n", ip_address)
+
+	// Respond with a success message
+	w.WriteHeader(http.StatusOK)
+}
+
+func (main Main) processDelete(w http.ResponseWriter, r *http.Request, consistentHash *consistent_hash.Trie) {
+	// Get the port from the form data
+	ip_address, _, err := net.SplitHostPort(r.RemoteAddr)
+
+	if ip_address != "::1" {
+		http.Error(w, "Cannot identify valid host", http.StatusBadRequest)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
+		return
+	}
+
+	remove_ip_address := r.Form.Get("ip_address")
+	if remove_ip_address == "" {
+		http.Error(w, "Some parameter is missing", http.StatusBadRequest)
+		return
+	}
+
+	consistentHash.DeleteNode(remove_ip_address)
+
+	// Process the heartbeat (for example, you can log it)
+	fmt.Printf("Deleted node %s\n", ip_address)
 
 	// Respond with a success message
 	w.WriteHeader(http.StatusOK)
@@ -138,7 +204,15 @@ func (main Main) serve() {
 
 	// Start the heartbeat server
 	http.Handle("/heartbeat", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		main.processPostRequest(w, r)
+		main.processHeartbeat(w, r)
+	}))
+
+	http.Handle("/insert", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		main.processInsert(w, r, consistentHash)
+	}))
+
+	http.Handle("/delete", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		main.processDelete(w, r, consistentHash)
 	}))
 
 	// Start the main server
@@ -193,7 +267,7 @@ func (main Main) serve() {
 		}
 
 		// Send request to found ip address
-		http.Redirect(w, r, fmt.Sprintf("http://%v:8080?url=%v", ip, url), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, fmt.Sprintf("http://%v:5050?url=%v", ip, url), http.StatusTemporaryRedirect)
 	})
 
 	serveAddr := fmt.Sprintf(":%d", main.mainPort)
@@ -209,7 +283,7 @@ func main() {
 	} else {
 		// Initialize for time.Now() + 60 seconds to allow for starting everything up
 		timestamp := time.Now().Add(60 * time.Second)
-		nodeList := []consistent_hash.ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 3}, {IP: "10.30.147.20", Timestamp: timestamp, Replicas: 3}}
+		nodeList := []consistent_hash.ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 1}}
 		main := NewMain(8080, nodeList)
 		main.serve()
 	}

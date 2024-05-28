@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go.uber.org/zap"
-    "go.uber.org/zap/zapcore"
 	"io"
 	"net/http"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // CacheMetrics represents metrics for the cache
@@ -90,7 +91,7 @@ func main() {
 
 	cache := NewCache()
 
-	httpAddr := flag.String("http", ":8080", "HTTP service address")
+	httpAddr := flag.String("http", ":5050", "HTTP service address")
 
 	fmt.Println("HTTP service listening on ", *httpAddr)
 
@@ -148,6 +149,6 @@ func main() {
 		logger.Info("Fetched and cached", zap.String("URL", url))
 	})
 
-	fmt.Println("Server started on :8080")
-	http.ListenAndServe(":8080", nil)
+	fmt.Println("Server started on :5050")
+	http.ListenAndServe(":5050", nil)
 }
