@@ -3,9 +3,18 @@ package consistent_hash
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"log"
+	"math/rand/v2"
 	"strconv"
+	"time"
 )
+
+type ServerNode struct {
+	IP        string
+	Timestamp time.Time
+	Replicas  int
+}
 
 type TrieNode struct {
 	children  [2]*TrieNode
@@ -14,26 +23,23 @@ type TrieNode struct {
 }
 
 type Trie struct {
-	root           *TrieNode
-	replicaPerNode int
+	root    *TrieNode
+	nodeMap map[string]ServerNode
 }
 
 func newNode() *TrieNode {
 	return &TrieNode{}
 }
 
-func NewTrie(ipAddresses []string, replicaPerNode int) *Trie {
+func NewTrie(nodeMap map[string]ServerNode) *Trie {
 	trie := &Trie{
-		root:           newNode(),
-		replicaPerNode: replicaPerNode,
+		root:    newNode(),
+		nodeMap: nodeMap,
 	}
 
 	// Add IP addresses to the hash table
-	for _, ip := range ipAddresses {
-		for replica_number := 0; replica_number < replicaPerNode; replica_number++ {
-			trie.insert(ip, replica_number)
-			log.Printf("Inserted IP %v, replica number %v\n", ip, replica_number)
-		}
+	for ip := range nodeMap {
+		trie.InsertNode(ip, nodeMap[ip].Replicas)
 	}
 	return trie
 }
@@ -78,13 +84,14 @@ func (t *Trie) Search(key string) string {
 func (t *Trie) DeleteNode(ip_address string) {
 	// TODO: Add locking logic here so that deleteNode is not called
 	// while we are reading
-	for replica_number := 0; replica_number < t.replicaPerNode; replica_number++ {
+	replica_count := t.nodeMap[ip_address].Replicas
+	for replica_number := 0; replica_number < replica_count; replica_number++ {
 		trie_key := getTrieKey(ip_address + strconv.Itoa(replica_number))
-		t.root = deleteRecursive(t.root, trie_key, 31)
+		t.root = t.deleteRecursive(t.root, trie_key, 31)
 	}
 }
 
-func deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {
+func (t *Trie) deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {
 	if node == nil {
 		return nil
 	}
@@ -100,12 +107,63 @@ func deleteRecursive(node *TrieNode, trie_key uint32, bitIndex int) *TrieNode {
 	} else {
 		// Otherwise, we recursively call the delete function on the child
 		// node
-		node.children[index] = deleteRecursive(node.children[index], trie_key, bitIndex-1)
+		node.children[index] = t.deleteRecursive(node.children[index], trie_key, bitIndex-1)
 	}
 
 	// If both children of a node are nil, we simply return nil.
-	if node.children[index] == nil && node.children[1-index] == nil {
+	if node.children[index] == nil && node.children[1-index] == nil && node != t.root {
 		return nil
 	}
 	return node
+}
+
+func (t *Trie) InsertNode(ip_address string, replica_count int) {
+	// Upadte replica count if the node already exists
+	if entry, ok := t.nodeMap[ip_address]; ok {
+		entry.Replicas = replica_count
+		t.nodeMap[ip_address] = entry
+	} else {
+		timestamp := time.Now().Add(60 * time.Second)
+		entry := ServerNode{IP: ip_address, Timestamp: timestamp, Replicas: replica_count}
+		t.nodeMap[ip_address] = entry
+	}
+	for replica_number := 0; replica_number < replica_count; replica_number++ {
+		t.insert(ip_address, replica_number)
+		log.Printf("Inserted IP %v, replica number %v\n", ip_address, replica_number)
+	}
+}
+
+// Thus function is used solely for testing purposes
+func KademliaMain() {
+	timestamp := time.Now().Add(60 * time.Second)
+	nodeList := []ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 10}, {IP: "10.30.147.20", Timestamp: timestamp, Replicas: 3}}
+	replica_count := 0
+
+	nodeMap := make(map[string]ServerNode)
+	for _, node := range nodeList {
+		nodeMap[node.IP] = node
+		replica_count += node.Replicas
+	}
+	consistentHash := NewTrie(nodeMap)
+
+	ipAddressCount := make(map[string]int)
+	numCalls := 10000
+	for i := 0; i < numCalls; i++ {
+		url := fmt.Sprintf("www.%v.com", rand.IntN(100000))
+		ip := consistentHash.Search(url)
+		ipAddressCount[ip]++
+	}
+
+	fmt.Println("Expected vs True Count Per Node: ")
+	for ip, node := range nodeMap {
+		fmt.Printf("IP: %v, Expected Count: %v, True Count: %v\n", ip, node.Replicas*numCalls/replica_count, ipAddressCount[ip])
+	}
+
+	// Delete a node
+	for ip := range nodeMap {
+		consistentHash.DeleteNode(ip)
+	}
+
+	consistentHash.InsertNode("localhost2", 1)
+	fmt.Println(consistentHash.Search("www.google.com"))
 }

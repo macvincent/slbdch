@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-	"go.uber.org/zap"
-    "go.uber.org/zap/zapcore"
+	"log"
 	"math"
 	"math/rand"
 	"net"
@@ -11,13 +10,15 @@ import (
 	"sync"
 	"time"
 	"web_main/consistent_hash"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Main struct {
-	mainPort         int
-	nodeAddresses    []string
-	replicaPerNode   int
-	nodeTimestampMap map[string]time.Time
+	mainPort      int
+	nodeAddresses []string
+	nodeMap       map[string]consistent_hash.ServerNode
 }
 
 type HotKeyEntry struct {
@@ -51,6 +52,29 @@ func (hk *HotKeys) Set(url string, entry HotKeyEntry) {
 	hk.KeyMap[url] = entry
 }
 
+func NewMain(mainPort int, nodeList []consistent_hash.ServerNode) *Main {
+	main := Main{mainPort: mainPort}
+
+	nodeMap := make(map[string]consistent_hash.ServerNode)
+	for _, node := range nodeList {
+		nodeMap[node.IP] = node
+		main.nodeAddresses = append(main.nodeAddresses, node.IP)
+	}
+	main.nodeMap = nodeMap
+
+	return &main
+}
+
+func (main Main) updateNodeTimestamps(node string, w http.ResponseWriter) {
+	nodeData, exists := main.nodeMap[node]
+	if !exists {
+		http.Error(w, "Node does not exist", http.StatusBadRequest)
+		return
+	}
+	nodeData.Timestamp = time.Now()
+	main.nodeMap[node] = nodeData
+}
+
 func (main Main) processPostRequest(w http.ResponseWriter, r *http.Request) {
 	// TODO: change this later based upon IP address
 	err := r.ParseForm()
@@ -72,7 +96,7 @@ func (main Main) processPostRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Process the heartbeat (for example, you can log it)
 	fmt.Printf("Received heartbeat from node %s\n", ip_address)
-	main.nodeTimestampMap[ip_address] = time.Now()
+	main.updateNodeTimestamps(ip_address, w)
 
 	// Respond with a success message
 	w.WriteHeader(http.StatusOK)
@@ -104,8 +128,7 @@ func (main Main) serve() {
 	logger, _ := cfg.Build()
 	defer logger.Sync()
 
-
-	consistentHash := consistent_hash.NewTrie(main.nodeAddresses, main.replicaPerNode)
+	consistentHash := consistent_hash.NewTrie(main.nodeMap)
 
 	// TODO figure out best threshold / k value
 	threshhold := 3.0
@@ -164,7 +187,7 @@ func (main Main) serve() {
 			})
 		}
 
-		for time.Now().Sub(main.nodeTimestampMap[ip]) > 15*time.Second {
+		for time.Since(main.nodeMap[ip].Timestamp) > 15*time.Second {
 			consistentHash.DeleteNode(ip)
 			ip = consistentHash.Search(url)
 		}
@@ -179,21 +202,15 @@ func (main Main) serve() {
 }
 
 func main() {
-	nodeTimestampMap := make(map[string]time.Time)
-	nodeAddresses := []string{"localhost"}
-
-	// Initialize for time.Now() + 500 seconds to allow for starting
-	// everything up
-	timestamp := time.Now().Add(500 * time.Second)
-	for _, nodeAddress := range nodeAddresses {
-		nodeTimestampMap[nodeAddress] = timestamp
+	runTests := true
+	if runTests {
+		consistent_hash.CycleMain()
+		consistent_hash.KademliaMain()
+	} else {
+		// Initialize for time.Now() + 60 seconds to allow for starting everything up
+		timestamp := time.Now().Add(60 * time.Second)
+		nodeList := []consistent_hash.ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 3}, {IP: "10.30.147.20", Timestamp: timestamp, Replicas: 3}}
+		main := NewMain(8080, nodeList)
+		main.serve()
 	}
-
-	main := Main{
-		mainPort:         5050,
-		nodeAddresses:    nodeAddresses,
-		replicaPerNode:   10,
-		nodeTimestampMap: nodeTimestampMap,
-	}
-	main.serve()
 }
