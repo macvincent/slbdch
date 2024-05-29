@@ -1,19 +1,14 @@
-# Load Balancing with Dynamic Consistent Hashing
+# Scalable Load Balanced Web Cache with Dynamic Consistent Hashing
 ## Abstract
 
 Load balancing, by ensuring the equitable distribution of requests in a cluster, helps
 reduce the likelihood of hotspots among cluster nodes. In this project, we will
-apply a consistent hashing approach Karger et al. (1999) to perform load-balancing
-tasks in a fault-tolerant manner. We will explore our ability to dynamically include
-new nodes in the cluster while maintaining the consistent nature of the hash.
-Performance and availability will be improved using per-shard replication similar
-to that described in the ZooKeeper paper Hunt et al. (2010). We will demonstrate
-the utility of our approach on a web caching system, where we will evaluate our
-implementation on metrics such as latency, throughput, and the impact of nodes
-going down/getting added to the system. As a stretch goal, we may also perform
-evaluations on a database retrieval and update system to further demonstrate the
-fault-tolerant nature of our system.
-
+apply a consistent hashing approach to develop a scalable web caching service. 
+We will explore our ability to dynamically include new nodes in the cluster while 
+maintaining the consistent nature of the hash. We will also explore both the disk and the
+Kademlia tree versions of consistent hashing. We will demonstrate the utility of our approach, 
+where we will evaluate our implementation on metrics such as latency, throughput, and the 
+impact of nodesgoing down/getting added to the system.
 
 ## Install Dependencies
 1. [Install Go](https://go.dev/doc/install).
