@@ -1,4 +1,4 @@
-# Fault-Tolerant Load Balancing with Dynamic Consistent Hashing
+# Load Balancing with Dynamic Consistent Hashing
 ## Abstract
 
 Load balancing, by ensuring the equitable distribution of requests in a cluster, helps
