@@ -15,10 +15,10 @@ type consistentHash struct {
 	// sorted list of virtual nodes
 	sortedVnodeHash []uint32
 	nodeMap         map[string]ServerNode
-	mux sync.RWMutex
+	mux             sync.RWMutex
 }
 
-func (ch consistentHash) getReplicaHashValues(ip string) []uint32 {
+func (ch *consistentHash) getReplicaHashValues(ip string) []uint32 {
 	ch.mux.RLock()
 	defer ch.mux.RUnlock()
 	hashValues := make([]uint32, 0)
