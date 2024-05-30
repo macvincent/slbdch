@@ -202,7 +202,7 @@ func saveAndCloseFile() {
 		return
 	}
 	// Reopen the file for further writing
-	latencyFile, err = os.OpenFile("latencies.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	latencyFile, err = os.OpenFile("main_latencies.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println("Error reopening file:", err)
 		os.Exit(1)
