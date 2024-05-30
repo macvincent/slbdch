@@ -1,5 +1,6 @@
 #!/bin/bash
-num_instances=4
+# command line arguments
+num_instances=$1
 username=macvincent
 
 # Create instances

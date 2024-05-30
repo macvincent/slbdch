@@ -17,7 +17,7 @@ echo 'export PATH=$HOME/go/bin:/usr/local/go/bin:$PATH' >> ~/.profile
 # Source .profile to update current shell session
 source ~/.profile
 
-# Navigate to the web_cache directory
+# Navigate to the heartbeats directory
 cd heartbeats
 
 echo "Running Go commands..."
