@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # Install Go
+sudo apt install git
+
 sudo apt install -y golang-go
 
 # Download Go tarball
@@ -15,11 +17,11 @@ echo 'export PATH=$HOME/go/bin:/usr/local/go/bin:$PATH' >> ~/.profile
 # Source .profile to update current shell session
 source ~/.profile
 
-# Navigate to the web_cache directory
-cd web_cache
+# Navigate to the heartbeats directory
+cd heartbeats
 
 echo "Running Go commands..."
 
 # Run Go commands
 go mod tidy
-go run main.go
+go run heartbeat.go
