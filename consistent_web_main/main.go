@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 	"web_main/consistent_hash"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -284,7 +283,10 @@ func main() {
 	} else {
 		// Initialize for time.Now() + 60 seconds to allow for starting everything up
 		timestamp := time.Now().Add(60 * time.Second)
-		nodeList := []consistent_hash.ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 1}}
+		// If using Google Cloud, change this variable to include the IPs of the servers you have created
+		nodeList := []consistent_hash.ServerNode{
+			{IP: "localhost", Timestamp: timestamp, Replicas: 1}
+		}
 		main := NewMain(8080, nodeList)
 		main.serve()
 	}

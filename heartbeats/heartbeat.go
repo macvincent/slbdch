@@ -29,9 +29,10 @@ func SendHeartbeat(mainAddr string) {
 }
 
 func main() {
-	// Master address
-	masterAddr := "localhost:8080"
+	// main address
+	// If using Google Cloud, change this variable to be the address of the main server
+	mainAddr := "localhost:8080"
 
 	// Start sending heartbeats
-	SendHeartbeat(masterAddr)
+	SendHeartbeat(mainAddr)
 }
