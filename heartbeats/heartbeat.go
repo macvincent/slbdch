@@ -30,7 +30,7 @@ func SendHeartbeat(mainAddr string) {
 
 func main() {
 	// Master address
-	masterAddr := "localhost:5050"
+	masterAddr := "localhost:8080"
 
 	// Start sending heartbeats
 	SendHeartbeat(masterAddr)
