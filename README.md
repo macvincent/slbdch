@@ -79,19 +79,17 @@ go run ./
 cd heartbeats
 ```
 
-3. Initialize go modules from the project directory:
+2. Initialize go modules from the project directory:
 ```
 go mod tidy
 ```
-3. Run main script:
+
 3. Run main script:
 ```
 go run ./
 ```
 
 ## Running consistent web main
-1. Update  `consistent_web_main/main.go` with a list of available ports in the object nodeList.
-
 1. Update  `consistent_web_main/main.go` with a list of available ports in the object nodeList.
 
 2. In a new termainal, change current terminal directory to `consistent_web_main`:
