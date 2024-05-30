@@ -186,7 +186,7 @@ func recordLatency(latency time.Duration) {
 
 func init() {
 	var err error
-	latencyFile, err = os.OpenFile("latencies.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	latencyFile, err = os.OpenFile("main_latencies.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
