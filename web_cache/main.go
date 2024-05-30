@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"sync"
 	"time"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
 
 // CacheMetrics represents metrics for the cache
 type CacheMetrics struct {
@@ -64,6 +64,9 @@ func (c *Cache) Set(key string, entry CacheEntry) {
 }
 
 func main() {
+	// Change this to an open port if running locally. CANNOT be 8080
+	const port String = ":5050"
+
 	// Create logger configuration with asynchronous logging enabled
 	cfg := zap.Config{
 		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),
@@ -91,7 +94,7 @@ func main() {
 
 	cache := NewCache()
 
-	httpAddr := flag.String("http", ":5050", "HTTP service address")
+	httpAddr := flag.String("http", port, "HTTP service address")
 
 	fmt.Println("HTTP service listening on ", *httpAddr)
 
@@ -149,6 +152,6 @@ func main() {
 		logger.Info("Fetched and cached", zap.String("URL", url))
 	})
 
-	fmt.Println("Server started on :5050")
-	http.ListenAndServe(":5050", nil)
+	fmt.Println("Server started on " + port)
+	http.ListenAndServe(port, nil)
 }

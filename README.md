@@ -15,48 +15,55 @@ impact of nodesgoing down/getting added to the system.
 
 
 ## [Optional] Running Web Caches in GCP:
-1. Create a Google Cloud VM (`gcloud projects list` to view lists of projects):
-```
- gcloud compute instances create go-vm1 --machine-type=n1-standard-1 --image-family=debian-10 --image-project=debian-cloud --zone=us-west4-a --tags=http-server
-```
-You will also need to update your GCP rules to allow external connection requests using these [instructions](https://www.geeksforgeeks.org/how-to-open-port-in-gcp-vm/).
 
-2. Move the repo to a newly create VM:
-```
-gcloud compute scp --recurse go-vm1:./ ../
-```
-3. Connect to the VM usign command (`sudo gcloud compute config-ssh` configures ssh if first time):
-```
-gcloud compute ssh go-vm1 --zone=us-west4-a
-```
+1. Create one server for main server using main_setup.sh
 
-4. In the ssh shell, make `setup.sh` an executable file:
-```
-chmod +x setup.sh
-```
+2. Through your google cloud portal determine IP address using the steps [here](https://cloud.google.com/compute/docs/instances/view-ip-address). Make sure to explicitly set an External IP address if not present. Change heartbeat.go code's variable mainAddr to that IP address.
 
-5. Run setup script:
-```
-./setup.sh
-```
+3. Run vm_creation_script.sh with changed username and instance name going from go-vm[k] where k is an integer with the following range [1, number of servers desired].
 
-## Running consistent web main
+4. Run local_setup.sh script to start up web server with changed username and instance name for every server you wish to create.
+
+5. Go to consistent_web_main/main.go code and change nodeList to have all the IP addresses of the servers that are being used with the desired number of replicas.
+
+
+# Running code on local machine
+## Running consistent web cache
 
 1. In a new termainal, change current terminal directory to `web_cache`:
 ```
 cd web_cache
 ```
-2. Initialize go modules from the project directory:
+2. Change the variable port for every web_cache server you wish to add. Note you will need to keep track of the ports you used as you will give this information to the main server.
+
+3. Initialize go modules from the project directory:
 ```
 go mod tidy
 ```
-3. Run main script while keeping track of open ports:
+3. Run main script:
+```
+go run ./
+```
+
+## Running consistent web cache heartbeat
+
+1. In a new termainal, change current terminal directory to `heartbeats`:
+```
+cd heartbeats
+```
+
+3. Initialize go modules from the project directory:
+```
+go mod tidy
+```
+3. Run main script:
 ```
 go run ./
 ```
 
 ## Running consistent web main
-1. Update  `consistent_web_main/main.go` with a list of available ports.
+1. Update  `consistent_web_main/main.go` with a list of available ports in the object nodeList.
+
 2. In a new termainal, change current terminal directory to `consistent_web_main`:
 ```
 cd consistent_web_main
@@ -68,4 +75,11 @@ go mod tidy
 4. Run main script while keeping track of open ports:
 ```
 go run ./
+```
+
+
+# Running load generator
+1. Run from the root directory:
+```
+go run load_generator/load_tester.go
 ```
