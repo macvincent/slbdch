@@ -61,6 +61,9 @@ cd heartbeats
 ```
 
 3. Initialize go modules from the project directory:
+2. Change the variable port for every web_cache server you wish to add. Note you will need to keep track of the ports you used as you will give this information to the main server.
+
+3. Initialize go modules from the project directory:
 ```
 go mod tidy
 ```
@@ -69,7 +72,26 @@ go mod tidy
 go run ./
 ```
 
+## Running consistent web cache heartbeat
+
+1. In a new termainal, change current terminal directory to `heartbeats`:
+```
+cd heartbeats
+```
+
+3. Initialize go modules from the project directory:
+```
+go mod tidy
+```
+3. Run main script:
+3. Run main script:
+```
+go run ./
+```
+
 ## Running consistent web main
+1. Update  `consistent_web_main/main.go` with a list of available ports in the object nodeList.
+
 1. Update  `consistent_web_main/main.go` with a list of available ports in the object nodeList.
 
 2. In a new termainal, change current terminal directory to `consistent_web_main`:
@@ -83,6 +105,13 @@ go mod tidy
 4. Run main script while keeping track of open ports:
 ```
 go run ./
+```
+
+
+# Running load generator
+1. Run from the root directory:
+```
+go run load_generator/load_tester.go
 ```
 
 
