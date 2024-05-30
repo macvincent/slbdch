@@ -1,7 +1,7 @@
 #!/bin/bash
 # command line arguments
 num_instances=$1
-username=macvincent
+username=$2
 
 # Create instances
 echo "Creating $num_instances instances..."
