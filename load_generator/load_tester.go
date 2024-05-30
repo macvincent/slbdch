@@ -105,7 +105,6 @@ func worker(client *http.Client, masterNode string, jobs <-chan string, wg *sync
 }
 
 func main() {
-	// defer latencyFile.Close()
 	// Define the master node address
 	masterNode := "http://localhost:8080"
 
