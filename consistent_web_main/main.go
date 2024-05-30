@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"math/rand"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -14,6 +14,11 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+)
+
+var (
+	latencyFile *os.File
+	fileMutex   sync.Mutex
 )
 
 type Main struct {
@@ -85,7 +90,6 @@ func (main Main) processHeartbeat(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
 		return
 	}
-	log.Println(r)
 	// Get the port from the form data
 	ip_address, _, err := net.SplitHostPort(r.RemoteAddr)
 
@@ -171,7 +175,42 @@ func (main Main) processDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func recordLatency(latency time.Duration) {
+	fileMutex.Lock()
+	defer fileMutex.Unlock()
+	_, err := latencyFile.WriteString(fmt.Sprintf("%v\n", latency))
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+	}
+}
+
+func init() {
+	var err error
+	latencyFile, err = os.OpenFile("main_latencies.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
+}
+
+func saveAndCloseFile() {
+	fileMutex.Lock()
+	defer fileMutex.Unlock()
+	err := latencyFile.Close()
+	if err != nil {
+		fmt.Println("Error closing file:", err)
+		return
+	}
+	// Reopen the file for further writing
+	latencyFile, err = os.OpenFile("main_latencies.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Error reopening file:", err)
+		os.Exit(1)
+	}
+}
+
 func (main Main) serve() {
+
 	// Create logger configuration with asynchronous logging enabled
 	cfg := zap.Config{
 		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),
@@ -225,7 +264,11 @@ func (main Main) serve() {
 			http.Error(w, "Missing 'url' query parameter", http.StatusBadRequest)
 			return
 		}
+		if url == "done" {
+			saveAndCloseFile()
+		}
 
+		start_time := time.Now()
 		ip := ""
 		// Find the IP address of the node that will serve the URL if url is hot
 		value, exists := hotUrls.Get(url)
@@ -266,9 +309,13 @@ func (main Main) serve() {
 			main.consistentHash.DeleteNode(ip)
 			ip = main.consistentHash.Search(url)
 		}
+		end_time := time.Now()
 
 		// Send request to found ip address
 		http.Redirect(w, r, fmt.Sprintf("http://%v:5050?url=%v", ip, url), http.StatusTemporaryRedirect)
+
+		latency := end_time.Sub(start_time)
+		recordLatency(latency)
 	})
 
 	serveAddr := fmt.Sprintf(":%d", main.mainPort)
@@ -277,6 +324,7 @@ func (main Main) serve() {
 }
 
 func main() {
+	defer latencyFile.Close()
 	runTests := false
 	if runTests {
 		consistent_hash.CycleMain()
