@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
-
 
 // CacheMetrics represents metrics for the cache
 type CacheMetrics struct {
@@ -142,7 +142,7 @@ func main() {
 		entry := CacheEntry{
 			Content:     content,
 			ContentType: resp.Header.Get("Content-Type"),
-			Expiration:  time.Now().Add(1 * time.Minute),
+			Expiration:  time.Now().Add(1 * time.Hour),
 		}
 		cache.Set(url, entry)
 
