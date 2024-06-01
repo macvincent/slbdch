@@ -178,7 +178,7 @@ func (main Main) processDelete(w http.ResponseWriter, r *http.Request) {
 func recordLatency(latency time.Duration) {
 	fileMutex.Lock()
 	defer fileMutex.Unlock()
-	_, err := latencyFile.WriteString(fmt.Sprintf("%v\n", latency))
+	_, err := latencyFile.WriteString(fmt.Sprintf("%v\n", latency.Nanoseconds()))
 	if err != nil {
 		fmt.Println("Error writing to file:", err)
 	}
