@@ -18,6 +18,7 @@ import (
 var (
 	latencyFile *os.File
 	fileMutex   sync.Mutex
+	latencyFileName string
 )
 
 type Main struct {
@@ -184,8 +185,9 @@ func recordLatency(latency time.Duration) {
 }
 
 func init() {
+	latencyFileName = time.Now().String() + ".txt"
 	var err error
-	latencyFile, err = os.OpenFile("main_latencies.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	latencyFile, err = os.OpenFile(latencyFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
@@ -201,7 +203,7 @@ func saveAndCloseFile() {
 		return
 	}
 	// Reopen the file for further writing
-	latencyFile, err = os.OpenFile("main_latencies.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	latencyFile, err = os.OpenFile(latencyFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println("Error reopening file:", err)
 		os.Exit(1)
