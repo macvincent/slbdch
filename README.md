@@ -29,7 +29,7 @@ bash ./vm_and_heartbeat_creation_script.sh <number_of_instances> <gcloud_usernam
 
 4. Run `local_setup.sh` script to start up a web server with changed username and instance name for every cache you wish to create.
 ```
-bash ./main_setup.sh <username> <instance_name>
+bash ./local_setup.sh <username> <instance_name>
 ```
 
 5. Go to the `consistent_web_main/main.go` code in your main terminal and change `nodeList` to have all the IP addresses of the servers that are being used with the desired number of replicas.
