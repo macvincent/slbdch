@@ -106,7 +106,7 @@ func worker(client *http.Client, masterNode string, jobs <-chan string, wg *sync
 
 func main() {
 	// Define the master node address
-	masterNode := "http://localhost:8080"
+	masterNode := "http://34.125.31.13:8080"
 
 	// Path to the CSV file
 	filePath := "load_generator/urlFrequencies.csv"

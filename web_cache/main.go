@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
-
 
 // CacheMetrics represents metrics for the cache
 type CacheMetrics struct {
@@ -65,7 +65,7 @@ func (c *Cache) Set(key string, entry CacheEntry) {
 
 func main() {
 	// Change this to an open port if running locally. CANNOT be 8080
-	const port String = ":5050"
+	port := ":5050"
 
 	// Create logger configuration with asynchronous logging enabled
 	cfg := zap.Config{
