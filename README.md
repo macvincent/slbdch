@@ -111,10 +111,3 @@ go run ./
 ```
 go run load_generator/load_tester.go
 ```
-
-
-# Running load generator
-1. Run from the root directory:
-```
-go run load_generator/load_tester.go
-```
