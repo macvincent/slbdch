@@ -27,7 +27,7 @@ for line in f.readlines():
         units.add(unit)
         line = line[:-2]
     latency = float(line) * factor
-    latencies += [latency]
+    latencies.append(latency)
 
 print("Units that are present:", units)
 latencies = np.array(latencies)
