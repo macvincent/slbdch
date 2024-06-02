@@ -17,7 +17,7 @@ impact of nodes going down/getting added to the system.
 
 1. Create the main server using main_setup.sh and leave the terminal open.
 ```
-bash ./main_setup.sh
+bash ./main_setup.sh <gcloud_username>
 ```
 
 2. Next, through your google cloud console determine IP address using the steps [here](https://cloud.google.com/compute/docs/instances/view-ip-address). Make sure to explicitly set an External IP address if not present. Change `heartbeat.go`'s variable `mainAddr` to that IP address.

@@ -1,5 +1,5 @@
 #!/bin/bash
-username=macvincent
+username=$1
 instance_name=main
 echo "Creating instance $instance_name"
 gcloud compute instances create "$instance_name" --machine-type=n1-standard-1 --image-family=debian-10 --image-project=debian-cloud --zone=us-west4-a --tags=http-server
