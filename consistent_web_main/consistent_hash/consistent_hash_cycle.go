@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type consistentHash struct {
+type Cycle struct {
 	// maps virtual nodes value in cycle to their IP addresses
 	vnodeHashToAddress map[uint32]string
 	// sorted list of virtual nodes
@@ -18,7 +18,7 @@ type consistentHash struct {
 	mux             sync.RWMutex
 }
 
-func (ch *consistentHash) getReplicaHashValues(ip string) []uint32 {
+func (ch *Cycle) getReplicaHashValues(ip string) []uint32 {
 	ch.mux.RLock()
 	defer ch.mux.RUnlock()
 	hashValues := make([]uint32, 0)
@@ -29,8 +29,8 @@ func (ch *consistentHash) getReplicaHashValues(ip string) []uint32 {
 	return hashValues
 }
 
-func NewConsistentHash(nodeMap map[string]ServerNode) *consistentHash {
-	ch := &consistentHash{
+func NewConsistentHash(nodeMap map[string]ServerNode) *Cycle {
+	ch := &Cycle{
 		vnodeHashToAddress: make(map[uint32]string),
 		sortedVnodeHash:    make([]uint32, 0),
 		nodeMap:            nodeMap,
@@ -52,7 +52,7 @@ func NewConsistentHash(nodeMap map[string]ServerNode) *consistentHash {
 	return ch
 }
 
-func (ch *consistentHash) Search(value string) string {
+func (ch *Cycle) Search(value string) string {
 	ch.mux.RLock()
 	defer ch.mux.RUnlock()
 	if len(ch.sortedVnodeHash) == 0 {
@@ -73,7 +73,7 @@ func (ch *consistentHash) Search(value string) string {
 	return ch.vnodeHashToAddress[ch.sortedVnodeHash[index]]
 }
 
-func (ch *consistentHash) InsertNode(ip_address string, replica_count int) {
+func (ch *Cycle) InsertNode(ip_address string, replica_count int) {
 	ch.mux.Lock()
 	defer ch.mux.Unlock()
 	// Update replica count if the node already exists
@@ -99,7 +99,7 @@ func (ch *consistentHash) InsertNode(ip_address string, replica_count int) {
 	})
 }
 
-func (ch *consistentHash) DeleteNode(ip string) {
+func (ch *Cycle) DeleteNode(ip string) {
 	ch.mux.Lock()
 	defer ch.mux.Unlock()
 	for _, replica_hash := range ch.getReplicaHashValues(ip) {
