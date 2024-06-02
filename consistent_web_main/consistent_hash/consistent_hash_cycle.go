@@ -52,7 +52,7 @@ func NewConsistentHash(nodeMap map[string]ServerNode) *consistentHash {
 	return ch
 }
 
-func (ch *consistentHash) ValueLookup(value string) string {
+func (ch *consistentHash) Search(value string) string {
 	ch.mux.RLock()
 	defer ch.mux.RUnlock()
 	if len(ch.sortedVnodeHash) == 0 {
@@ -135,7 +135,7 @@ func CycleMain() {
 	numCalls := 10000
 	for i := 0; i < numCalls; i++ {
 		url := fmt.Sprintf("www.%v.com", rand.IntN(100000))
-		ip := consistentHash.ValueLookup(url)
+		ip := consistentHash.Search(url)
 		ipAddressCount[ip]++
 	}
 
@@ -153,5 +153,5 @@ func CycleMain() {
 	consistentHash.InsertNode("localhost2", 2)
 
 	// Search for a value
-	fmt.Println(consistentHash.ValueLookup("www.google.com"))
+	fmt.Println(consistentHash.Search("www.google.com"))
 }
