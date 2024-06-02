@@ -144,11 +144,12 @@ func CycleMain() {
 		fmt.Printf("IP: %v, Expected Count: %v, True Count: %v\n", ip, node.Replicas*numCalls/replica_count, ipAddressCount[ip])
 	}
 
+	fmt.Println("Got Here")
+
 	// Delete all nodes
 	for ip := range nodeMap {
 		consistentHash.DeleteNode(ip)
 	}
-
 	// Insert a new node
 	consistentHash.InsertNode("localhost2", 2)
 
