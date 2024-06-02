@@ -1,4 +1,4 @@
-package main
+// package main
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ type Main struct {
 	mainPort       int
 	nodeAddresses  []string
 	nodeMap        map[string]consistent_hash.ServerNode
-	consistentHash *consistent_hash.Cycle
+	consistentHash *consistent_hash.Trie
 }
 
 type HotKeyEntry struct {
@@ -70,7 +70,7 @@ func NewMain(mainPort int, nodeList []consistent_hash.ServerNode) *Main {
 	}
 	main.nodeMap = nodeMap
 
-	main.consistentHash = consistent_hash.NewConsistentHash(nodeMap)
+	main.consistentHash = consistent_hash.NewTrie(nodeMap)
 
 	return &main
 }
@@ -269,7 +269,7 @@ func (main Main) serve() {
 				//logger.Info("Threshold reached, randomly dispersing.")
 				ip = main.nodeAddresses[rand.Intn(len(main.nodeAddresses))]
 			} else {
-				ip = main.consistentHash.ValueLookup(url)
+				ip = main.consistentHash.Search(url)
 			}
 
 			if value.PastTimeRequest == now {
@@ -290,7 +290,7 @@ func (main Main) serve() {
 			}
 		} else {
 			//logger.Info("Starting entry of moving average.")
-			ip = main.consistentHash.ValueLookup(url)
+			ip = main.consistentHash.Search(url)
 			hotUrls.Set(url, HotKeyEntry{
 				Average:         1,
 				PastTimeRequest: now,
@@ -299,7 +299,7 @@ func (main Main) serve() {
 
 		for time.Since(main.nodeMap[ip].Timestamp) > 15*time.Second {
 			main.consistentHash.DeleteNode(ip)
-			ip = main.consistentHash.ValueLookup(url)
+			ip = main.consistentHash.Search(url)
 		}
 		end_time := time.Now()
 
@@ -325,7 +325,7 @@ func init() {
 	}
 }
 
-var num_total_replicas int = 1000000
+var num_total_replicas int = 1000
 
 func main() {
 	defer latencyFile.Close()
