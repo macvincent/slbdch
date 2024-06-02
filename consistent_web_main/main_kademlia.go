@@ -1,4 +1,4 @@
-// package main
+package main
 
 import (
 	"fmt"
@@ -260,7 +260,6 @@ func (main Main) serve() {
 			saveAndCloseFile()
 		}
 
-		start_time := time.Now()
 		ip := ""
 		// Find the IP address of the node that will serve the URL if url is hot
 		value, exists := hotUrls.Get(url)
@@ -269,7 +268,11 @@ func (main Main) serve() {
 				//logger.Info("Threshold reached, randomly dispersing.")
 				ip = main.nodeAddresses[rand.Intn(len(main.nodeAddresses))]
 			} else {
+				start_time := time.Now()
 				ip = main.consistentHash.Search(url)
+				end_time := time.Now()
+				latency := end_time.Sub(start_time)
+				recordLatency(latency)
 			}
 
 			if value.PastTimeRequest == now {
@@ -301,13 +304,9 @@ func (main Main) serve() {
 			main.consistentHash.DeleteNode(ip)
 			ip = main.consistentHash.Search(url)
 		}
-		end_time := time.Now()
 
 		// Send request to found ip address
 		http.Redirect(w, r, fmt.Sprintf("http://%v:5050?url=%v", ip, url), http.StatusTemporaryRedirect)
-
-		latency := end_time.Sub(start_time)
-		recordLatency(latency)
 	})
 
 	serveAddr := fmt.Sprintf(":%d", main.mainPort)
@@ -325,7 +324,7 @@ func init() {
 	}
 }
 
-var num_total_replicas int = 1000
+var num_total_replicas int = 1
 
 func main() {
 	defer latencyFile.Close()
@@ -338,10 +337,7 @@ func main() {
 		timestamp := time.Now().Add(60 * time.Second)
 		// If using Google Cloud, change this variable to include the IPs of the servers you have created
 		nodeList := []consistent_hash.ServerNode{
-			{IP: "34.16.223.151", Timestamp: timestamp, Replicas: num_total_replicas / 4},  // go-vm1
-			{IP: "34.125.164.94", Timestamp: timestamp, Replicas: num_total_replicas / 4},  // go-vm2
-			{IP: "34.125.180.235", Timestamp: timestamp, Replicas: num_total_replicas / 4}, // go-vm3
-			{IP: "34.125.231.159", Timestamp: timestamp, Replicas: num_total_replicas / 4}, // go-vm4
+			{IP: "34.16.223.151", Timestamp: timestamp, Replicas: num_total_replicas}, // go-vm1
 		}
 		main := NewMain(8080, nodeList)
 		main.serve()

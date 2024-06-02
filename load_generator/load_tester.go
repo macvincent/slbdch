@@ -120,7 +120,7 @@ func main() {
 	}
 
 	requests := GenerateRequests(urlFrequencies)
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(1)
 	rand.Shuffle(len(requests), func(i, j int) { requests[i], requests[j] = requests[j], requests[i] })
 
 	jobs := make(chan string, len(requests))
