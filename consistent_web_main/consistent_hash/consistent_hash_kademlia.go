@@ -70,7 +70,7 @@ func (t *Trie) insert(ip_address string, replica_number int) {
 	node.ipAddress = ip_address
 }
 
-func (t *Trie) Search(key string) string {
+func (t *Trie) ValueLookup(key string) string {
 	t.mux.RLock()
 	defer t.mux.RUnlock()
 	trie_key := getTrieKey(key)
@@ -158,7 +158,7 @@ func KademliaMain() {
 	numCalls := 10000
 	for i := 0; i < numCalls; i++ {
 		url := fmt.Sprintf("www.%v.com", rand.IntN(100000))
-		ip := consistentHash.Search(url)
+		ip := consistentHash.ValueLookup(url)
 		ipAddressCount[ip]++
 	}
 
@@ -173,5 +173,5 @@ func KademliaMain() {
 	}
 
 	consistentHash.InsertNode("localhost2", 1)
-	fmt.Println(consistentHash.Search("www.google.com"))
+	fmt.Println(consistentHash.ValueLookup("www.google.com"))
 }

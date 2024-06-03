@@ -106,7 +106,7 @@ func worker(client *http.Client, masterNode string, jobs <-chan string, wg *sync
 
 func main() {
 	// Define the master node address
-	masterNode := "http://localhost:8080"
+	masterNode := "http://34.16.138.171:8080"
 
 	// Path to the CSV file
 	filePath := "load_generator/urlFrequencies.csv"
@@ -120,7 +120,7 @@ func main() {
 	}
 
 	requests := GenerateRequests(urlFrequencies)
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(1)
 	rand.Shuffle(len(requests), func(i, j int) { requests[i], requests[j] = requests[j], requests[i] })
 
 	jobs := make(chan string, len(requests))
