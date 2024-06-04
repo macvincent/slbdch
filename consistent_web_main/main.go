@@ -25,7 +25,7 @@ type Main struct {
 	mainPort       int
 	nodeAddresses  []string
 	nodeMap        map[string]consistent_hash.ServerNode
-	consistentHash *consistent_hash.Hash
+	consistentHash *consistent_hash.SimpleHash
 }
 
 type HotKeyEntry struct {
@@ -334,9 +334,7 @@ func main() {
 		// Initialize for time.Now() + 60 seconds to allow for starting everything up
 		timestamp := time.Now().Add(60 * time.Second)
 		// If using Google Cloud, change this variable to include the IPs of the servers you have created
-		nodeList := []consistent_hash.ServerNode{
-			{IP: "localhost", Timestamp: timestamp, Replicas: 1}
-		}
+		nodeList := []consistent_hash.ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 1}}
 		main := NewMain(8080, nodeList)
 		main.serve()
 	}
