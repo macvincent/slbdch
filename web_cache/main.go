@@ -65,7 +65,7 @@ func (c *Cache) Set(key string, entry CacheEntry) {
 
 func main() {
 	// Change this to an open port if running locally. CANNOT be 8080
-	const port String = ":5050"
+	const port string = ":5050"
 
 	// Create logger configuration with asynchronous logging enabled
 	cfg := zap.Config{

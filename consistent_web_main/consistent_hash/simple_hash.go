@@ -34,7 +34,9 @@ func (h *SimpleHash) InsertNode(ip_address string, replica_count int) {
 	h.mux.Lock()
 	defer h.mux.Unlock()
 	if entry, ok := h.nodeMap[ip_address]; ok {
+		h.sizeInclRepls -= (uint32) (entry.Replicas)
 		entry.Replicas = replica_count
+		h.sizeInclRepls += (uint32) (entry.Replicas)
 
 		// Note that this changes the distribution for other keys after the ip address
 		// this is fine because regardless the other keys will be changed
@@ -43,6 +45,7 @@ func (h *SimpleHash) InsertNode(ip_address string, replica_count int) {
 		timestamp := time.Now().Add(60 * time.Second)
 		h.nodeMap[ip_address] = ServerNode{IP: ip_address, Timestamp: timestamp, Replicas: replica_count}
 		h.orderedKeys = append(h.orderedKeys, ip_address)
+		h.sizeInclRepls += (uint32) (replica_count)
 	}
 }
 
