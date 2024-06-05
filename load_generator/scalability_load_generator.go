@@ -63,50 +63,65 @@ func GenerateRequests(filePath string) []string {
 	return requests
 }
 
+func RequesWorker(requests []string, masterNode string, wg *sync.WaitGroup, outputThroughput int) {
+	wokerWaitGroup := sync.WaitGroup{}
+	wokerWaitGroup.Add(len(requests))
+	ticker := time.NewTicker(time.Second / time.Duration(outputThroughput))
+	failedRequests := 0
+	defer ticker.Stop()
+
+	for _, url := range requests {
+		<-ticker.C
+		go func(url string) {
+			defer wokerWaitGroup.Done()
+			defer wg.Done()
+			url = fmt.Sprintf("%s/?url=%s", masterNode, url)
+			resp, err := http.Get(url)
+			if err != nil {
+				failedRequests++
+				log.Printf("Failed request: %v\n", err)
+				return
+			}
+			resp.Body.Close()
+			time.Sleep(1 * time.Millisecond)
+		}(url)
+	}
+	wokerWaitGroup.Wait()
+	log.Printf("Worker done. Failed requests: %d\n", failedRequests)
+}
+
 func main() {
 	// Define the master node address
 	masterNode := "http://localhost:8080"
 
 	filePath := "load_generator/urlFrequencies.csv"
-
 	requests := GenerateRequests(filePath)
+
+	outputThroughput := 100 // requests per second
+	numWorkers := 10
+	if outputThroughput%numWorkers != 0 || outputThroughput*numWorkers < 0 {
+		log.Fatalf("Invalid outputThroughput or numWorkers\n")
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(len(requests))
 
-	outputThroughput := 100.0 // requests per second
 	ticker := time.NewTicker(time.Second / time.Duration(outputThroughput))
 	defer ticker.Stop()
 
 	startTime := time.Now()
-	successCounter := 0
-	failCounter := 0
-
-	// TODO: One worker might prove to be a bottleneck. Consider using multiple workers.
 	log.Printf("Starting load test\n")
-	for _, url := range requests {
-		<-ticker.C
-		go func(url string) {
-			defer wg.Done()
-			url = fmt.Sprintf("%s/?url=%s", masterNode, url)
-			resp, err := http.Get(url)
-			if err != nil {
-				failCounter++
-				log.Printf("Failed request: %v\n", err)
-				return
-			}
-			resp.Body.Close()
-			successCounter++
-		}(url)
+	for i := 0; i < numWorkers; i++ {
+		startIndex := i * len(requests) / numWorkers
+		endIndex := (i + 1) * len(requests) / numWorkers
+		go RequesWorker(requests[startIndex:endIndex], masterNode, &wg, outputThroughput/numWorkers)
 	}
 	log.Printf("All requests sent\n")
 	wg.Wait()
 	elapsedTime := time.Since(startTime)
 
 	log.Printf("Total requests: %d\n", len(requests))
-	log.Printf("Successful requests: %d\n", successCounter)
-	log.Printf("Failed requests: %d\n", failCounter)
 	log.Printf("Elapsed time: %s\n", elapsedTime)
-	log.Printf("Request Throughput: %.2f requests per second\n", outputThroughput)
-	log.Printf("Response Throughput: %.2f requests per second\n", float64(successCounter)/elapsedTime.Seconds())
+	log.Printf("Request Throughput: %d requests per second\n", outputThroughput)
+	log.Printf("Response Throughput: %.2f requests per second\n", float64(len(requests))/elapsedTime.Seconds())
 }
