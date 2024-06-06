@@ -12,6 +12,29 @@ import (
 	"time"
 )
 
+var (
+	throughputFile *os.File
+	fileMutex      sync.Mutex
+)
+
+func init() {
+	var err error
+	throughputFile, err = os.OpenFile("load_tester_throughput_5_node.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
+}
+
+func recordThroughput(outgoingThroughput float32, incomingThroughput float32) {
+	fileMutex.Lock()
+	defer fileMutex.Unlock()
+	_, err := throughputFile.WriteString(fmt.Sprintf("%v %v\n", outgoingThroughput, incomingThroughput))
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+	}
+}
+
 // ReadCSV reads a CSV file and returns a map of URLs and their frequencies
 func ReadCSV(filePath string) (map[string]int, error) {
 	file, err := os.Open(filePath)
@@ -83,7 +106,6 @@ func RequesWorker(requests []string, masterNode string, wg *sync.WaitGroup, outp
 				return
 			}
 			resp.Body.Close()
-			time.Sleep(1 * time.Millisecond)
 		}(url)
 	}
 	wokerWaitGroup.Wait()
@@ -92,13 +114,13 @@ func RequesWorker(requests []string, masterNode string, wg *sync.WaitGroup, outp
 
 func main() {
 	// Define the master node address
-	masterNode := "http://localhost:8080"
+	masterNode := "http://34.16.174.18:8080"
 
-	filePath := "load_generator/urlFrequencies.csv"
+	filePath := "./urlFrequencies.csv"
 	requests := GenerateRequests(filePath)
 
-	outputThroughput := 500 // requests per second
-	numWorkers := 10
+	outputThroughput := 10000 // requests per second
+	numWorkers := 5
 	if outputThroughput%numWorkers != 0 || outputThroughput*numWorkers < 0 {
 		log.Fatalf("Invalid outputThroughput or numWorkers\n")
 	}
@@ -119,9 +141,13 @@ func main() {
 	log.Printf("All requests sent\nWaiting...\n")
 	wg.Wait()
 	elapsedTime := time.Since(startTime)
+	incomingThroughput := float32(len(requests)) / float32(elapsedTime.Seconds())
 
 	log.Printf("Total requests: %d\n", len(requests))
 	log.Printf("Elapsed time: %s\n", elapsedTime)
 	log.Printf("Request Throughput: %d requests per second\n", outputThroughput)
-	log.Printf("Response Throughput: %.2f requests per second\n", float64(len(requests))/elapsedTime.Seconds())
+	log.Printf("Response Throughput: %.2f requests per second\n", incomingThroughput)
+
+	// save the latency data to a file
+	recordThroughput(float32(outputThroughput), incomingThroughput)
 }

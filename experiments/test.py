@@ -20,7 +20,7 @@ def plot_nodes(node):
         throughput = runs_to_throughput[run]
         average_throughput = np.array(throughput).max()
         results.append(average_throughput)
-        print(f'Nodes {node}, Run {run}, Average Throughput: {average_throughput}')
+        print(f'Nodes {node}, Run {run}, Max Throughput: {average_throughput}')
         plt.plot(np.log10(run), average_throughput, 'ro')
     plt.plot(np.log10(runs), results, 'b-')
     plt.xlabel('Request Throughput')
