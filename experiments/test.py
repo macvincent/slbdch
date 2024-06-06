@@ -16,7 +16,7 @@ def plot_nodes(node):
                 runs_to_throughput[run] = []
             runs_to_throughput[run].append(float(throughput))
     
-    runs = [100, 315, 1000, 3160, 10000]
+    runs = [100, 315, 1000, 3160, 10000, 100000]
     results = []
     for run in runs:
         throughput = runs_to_throughput[run]

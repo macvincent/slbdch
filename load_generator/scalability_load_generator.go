@@ -19,7 +19,7 @@ var (
 
 func init() {
 	var err error
-	throughputFile, err = os.OpenFile("load_tester_throughput_5_node.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	throughputFile, err = os.OpenFile("load_tester_throughput_3_node.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)

@@ -339,8 +339,8 @@ func main() {
 			{IP: "34.16.230.177", Timestamp: timestamp, Replicas: 1},
 			{IP: "34.16.211.93", Timestamp: timestamp, Replicas: 1},
 			{IP: "34.16.161.0", Timestamp: timestamp, Replicas: 1},
-			{IP: "34.16.208.197", Timestamp: timestamp, Replicas: 1},
-			{IP: "34.125.219.78", Timestamp: timestamp, Replicas: 1},
+			// {IP: "34.16.208.197", Timestamp: timestamp, Replicas: 1},
+			// {IP: "34.125.219.78", Timestamp: timestamp, Replicas: 1},
 		}
 		main := NewMain(8080, nodeList)
 		main.serve()
