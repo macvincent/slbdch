@@ -11,13 +11,14 @@ import (
 	"sync"
 	"time"
 	"web_main/consistent_hash"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var (
-	latencyFile *os.File
-	fileMutex   sync.Mutex
+	latencyFile     *os.File
+	fileMutex       sync.Mutex
 	latencyFileName string
 )
 
@@ -185,7 +186,7 @@ func recordLatency(latency time.Duration) {
 }
 
 func init() {
-	latencyFileName = time.Now().String() + ".txt"
+	latencyFileName = "test.txt"
 	var err error
 	latencyFile, err = os.OpenFile(latencyFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -335,7 +336,7 @@ func main() {
 		timestamp := time.Now().Add(60 * time.Second)
 		// If using Google Cloud, change this variable to include the IPs of the servers you have created
 		nodeList := []consistent_hash.ServerNode{
-			{IP: "localhost", Timestamp: timestamp, Replicas: 1}
+			{IP: "localhost", Timestamp: timestamp, Replicas: 1},
 		}
 		main := NewMain(8080, nodeList)
 		main.serve()

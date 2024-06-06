@@ -97,7 +97,7 @@ func main() {
 	filePath := "load_generator/urlFrequencies.csv"
 	requests := GenerateRequests(filePath)
 
-	outputThroughput := 100 // requests per second
+	outputThroughput := 500 // requests per second
 	numWorkers := 10
 	if outputThroughput%numWorkers != 0 || outputThroughput*numWorkers < 0 {
 		log.Fatalf("Invalid outputThroughput or numWorkers\n")
@@ -116,7 +116,7 @@ func main() {
 		endIndex := (i + 1) * len(requests) / numWorkers
 		go RequesWorker(requests[startIndex:endIndex], masterNode, &wg, outputThroughput/numWorkers)
 	}
-	log.Printf("All requests sent\n")
+	log.Printf("All requests sent\nWaiting...\n")
 	wg.Wait()
 	elapsedTime := time.Since(startTime)
 
