@@ -119,7 +119,7 @@ func main() {
 	filePath := "./urlFrequencies.csv"
 	requests := GenerateRequests(filePath)
 
-	outputThroughput := 10000 // requests per second
+	outputThroughput := 100000 // requests per second
 	numWorkers := 5
 	if outputThroughput%numWorkers != 0 || outputThroughput*numWorkers < 0 {
 		log.Fatalf("Invalid outputThroughput or numWorkers\n")
