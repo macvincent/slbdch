@@ -26,7 +26,7 @@ type Main struct {
 	mainPort       int
 	nodeAddresses  []string
 	nodeMap        map[string]consistent_hash.ServerNode
-	consistentHash *consistent_hash.Trie
+	consistentHash *consistent_hash.Cycle
 }
 
 type HotKeyEntry struct {
@@ -70,7 +70,7 @@ func NewMain(mainPort int, nodeList []consistent_hash.ServerNode) *Main {
 	}
 	main.nodeMap = nodeMap
 
-	main.consistentHash = consistent_hash.NewTrie(nodeMap)
+	main.consistentHash = consistent_hash.NewConsistentHash(nodeMap)
 
 	return &main
 }
@@ -269,7 +269,7 @@ func (main Main) serve() {
 				ip = main.nodeAddresses[rand.Intn(len(main.nodeAddresses))]
 			} else {
 				start_time := time.Now()
-				ip = main.consistentHash.Search(url)
+				ip = main.consistentHash.ValueLookup(url)
 				end_time := time.Now()
 				latency := end_time.Sub(start_time)
 				recordLatency(latency)
@@ -293,7 +293,7 @@ func (main Main) serve() {
 			}
 		} else {
 			//logger.Info("Starting entry of moving average.")
-			ip = main.consistentHash.Search(url)
+			ip = main.consistentHash.ValueLookup(url)
 			hotUrls.Set(url, HotKeyEntry{
 				Average:         1,
 				PastTimeRequest: now,
@@ -302,7 +302,7 @@ func (main Main) serve() {
 
 		for time.Since(main.nodeMap[ip].Timestamp) > 15*time.Second {
 			main.consistentHash.DeleteNode(ip)
-			ip = main.consistentHash.Search(url)
+			ip = main.consistentHash.ValueLookup(url)
 		}
 
 		// Send request to found ip address
@@ -324,7 +324,7 @@ func init() {
 	}
 }
 
-var num_total_replicas int = 1
+var num_total_replicas int = 10000
 
 func main() {
 	defer latencyFile.Close()
@@ -337,7 +337,7 @@ func main() {
 		timestamp := time.Now().Add(60 * time.Second)
 		// If using Google Cloud, change this variable to include the IPs of the servers you have created
 		nodeList := []consistent_hash.ServerNode{
-			{IP: "34.16.223.151", Timestamp: timestamp, Replicas: num_total_replicas}, // go-vm1
+			{IP: "34.16.161.0", Timestamp: timestamp, Replicas: num_total_replicas}, // go-vm1
 		}
 		main := NewMain(8080, nodeList)
 		main.serve()

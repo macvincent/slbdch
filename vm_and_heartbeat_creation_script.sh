@@ -8,7 +8,7 @@ echo "Creating $num_instances instances..."
 for ((i=1; i<=num_instances; i++))
 do
     instance_name=go-vm$i
-    gcloud compute instances create $instance_name --machine-type=n1-standard-1 --image-family=debian-10 --image-project=debian-cloud --zone=us-west4-a --tags=http-server
+    gcloud compute instances create $instance_name --machine-type=n1-standard-2 --image-family=debian-10 --image-project=debian-cloud --zone=us-west4-a --tags=http-server
 done
 
 # sleep for 30 seconds
