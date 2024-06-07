@@ -25,7 +25,7 @@ type Main struct {
 	mainPort       int
 	nodeAddresses  []string
 	nodeMap        map[string]consistent_hash.ServerNode
-	consistentHash *consistent_hash.SimpleHash
+	consistentHash *consistent_hash.Trie
 }
 
 type HotKeyEntry struct {
@@ -69,7 +69,7 @@ func NewMain(mainPort int, nodeList []consistent_hash.ServerNode) *Main {
 	}
 	main.nodeMap = nodeMap
 
-	main.consistentHash = consistent_hash.NewSimpleHash(nodeMap)
+	main.consistentHash = consistent_hash.NewTrie(nodeMap)
 
 	return &main
 }
