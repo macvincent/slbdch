@@ -63,9 +63,20 @@ func (c *Cache) Set(key string, entry CacheEntry) {
 	c.metrics.RequestCount++
 }
 
+// CleanExpired removes expired cache entries
+func (c *Cache) CleanExpiredEntries() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	for key, entry := range c.entries {
+		if time.Now().After(entry.Expiration) {
+			delete(c.entries, key)
+		}
+	}
+}
+
 func main() {
 	// Change this to an open port if running locally. CANNOT be 8080
-	const port String = ":5050"
+	const port = ":5050"
 
 	// Create logger configuration with asynchronous logging enabled
 	cfg := zap.Config{
@@ -97,6 +108,19 @@ func main() {
 	httpAddr := flag.String("http", port, "HTTP service address")
 
 	fmt.Println("HTTP service listening on ", *httpAddr)
+
+	// Periodically clean expired cache entries
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour) // Set the interval for cleaning
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				cache.CleanExpiredEntries()
+				logger.Info("Cleaned expired cache entries")
+			}
+		}
+	}()
 
 	// Expose metrics as JSON on /metrics
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +162,7 @@ func main() {
 			return
 		}
 
-		// Cache content for 1 minute
+		// Cache content for 1 hour
 		entry := CacheEntry{
 			Content:     content,
 			ContentType: resp.Header.Get("Content-Type"),
