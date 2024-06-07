@@ -63,6 +63,26 @@ func (c *Cache) Set(key string, entry CacheEntry) {
 	c.metrics.RequestCount++
 }
 
+// CleanExpiredEntries removes expired cache entries
+func (c *Cache) CleanExpiredEntries() {
+	for key := range c.entries {
+		// Step 1: Acquire a read lock, store the expiration time in a variable, and release the read lock
+		c.mutex.RLock()
+		expiration := c.entries[key].Expiration
+		c.mutex.RUnlock()
+
+		// Step 2: If the time has expired, acquire a write lock, check the expiration time again, delete the cache entry and release the write lock
+		if time.Now().After(expiration) {
+			c.mutex.Lock()
+			// Check expiration time again
+			if entry, ok := c.entries[key]; ok && time.Now().After(entry.Expiration) {
+				delete(c.entries, key)
+			}
+			c.mutex.Unlock()
+		}
+	}
+}
+
 func main() {
 	// Change this to an open port if running locally. CANNOT be 8080
 	const port = ":5050"
@@ -97,6 +117,19 @@ func main() {
 	httpAddr := flag.String("http", port, "HTTP service address")
 
 	fmt.Println("HTTP service listening on ", *httpAddr)
+
+	// Periodically clean expired cache entries
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour) // Set the interval for cleaning
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				cache.CleanExpiredEntries()
+				logger.Info("Cleaned expired cache entries")
+			}
+		}
+	}()
 
 	// Expose metrics as JSON on /metrics
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +171,7 @@ func main() {
 			return
 		}
 
-		// Cache content for 1 minute
+		// Cache content for 1 hour
 		entry := CacheEntry{
 			Content:     content,
 			ContentType: resp.Header.Get("Content-Type"),
