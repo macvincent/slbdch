@@ -86,6 +86,7 @@ func worker(client *http.Client, masterNode string, jobs <-chan string, wg *sync
 		// Construct the URL to be sent to the master node
 		masterURL := fmt.Sprintf("%s/?url=%s", masterNode, url.QueryEscape(rawURL))
 		resp, err := client.Get(masterURL)
+
 		if err != nil {
 			mutex.Lock()
 			*failCounter++
@@ -93,6 +94,7 @@ func worker(client *http.Client, masterNode string, jobs <-chan string, wg *sync
 			log.Printf("Failed to send request to %s: %v\n", masterURL, err)
 			continue
 		}
+
 		resp.Body.Close()
 		mutex.Lock()
 		*successCounter++
@@ -112,7 +114,7 @@ func main() {
 	filePath := "load_generator/urlFrequencies.csv"
 
 	// Number of parallel workers
-	numWorkers := 10
+	numWorkers := 1
 
 	urlFrequencies, err := ReadCSV(filePath)
 	if err != nil {
