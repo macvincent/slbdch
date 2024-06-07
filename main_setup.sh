@@ -2,7 +2,7 @@
 username=$1
 instance_name=main
 echo "Creating instance $instance_name"
-gcloud compute instances create "$instance_name" --machine-type=n1-standard-1 --image-family=debian-10 --image-project=debian-cloud --zone=us-west4-a --tags=http-server
+gcloud compute instances create "$instance_name" --machine-type=n1-standard-16 --image-family=debian-10 --image-project=debian-cloud --zone=us-west4-a --tags=http-server
 
 echo "Copying files to instance $instance_name"
 gcloud compute scp --recurse --compress main_startup.sh ./consistent_web_main $instance_name:/home/$username

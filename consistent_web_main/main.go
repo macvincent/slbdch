@@ -278,7 +278,7 @@ func (main Main) serve() {
 				//logger.Info("Threshold reached, randomly dispersing.")
 				ip = main.nodeAddresses[rand.Intn(len(main.nodeAddresses))]
 			} else {
-				ip = main.consistentHash.Search(url)
+				ip = main.consistentHash.ValueLookup(url)
 			}
 
 			if value.PastTimeRequest == now {
@@ -299,7 +299,7 @@ func (main Main) serve() {
 			}
 		} else {
 			//logger.Info("Starting entry of moving average.")
-			ip = main.consistentHash.Search(url)
+			ip = main.consistentHash.ValueLookup(url)
 			hotUrls.Set(url, HotKeyEntry{
 				Average:         1,
 				PastTimeRequest: now,
@@ -308,7 +308,7 @@ func (main Main) serve() {
 
 		for time.Since(main.nodeMap[ip].Timestamp) > 15*time.Second {
 			main.consistentHash.DeleteNode(ip)
-			ip = main.consistentHash.Search(url)
+			ip = main.consistentHash.ValueLookup(url)
 		}
 		end_time := time.Now()
 
@@ -334,9 +334,7 @@ func main() {
 		// Initialize for time.Now() + 60 seconds to allow for starting everything up
 		timestamp := time.Now().Add(60 * time.Second)
 		// If using Google Cloud, change this variable to include the IPs of the servers you have created
-		nodeList := []consistent_hash.ServerNode{
-			{IP: "localhost", Timestamp: timestamp, Replicas: 1}
-		}
+		nodeList := []consistent_hash.ServerNode{{IP: "localhost", Timestamp: timestamp, Replicas: 1}}
 		main := NewMain(8080, nodeList)
 		main.serve()
 	}
