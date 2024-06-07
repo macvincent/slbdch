@@ -33,10 +33,10 @@ func sendRequest(client *http.Client, url string, results chan<- RequestData) {
 }
 
 func main() {
-	masterAddr := "http://localhost:8080"
+	masterAddr := "http://34.125.70.184:8080"
 	rawURL := "https://www.google.com"
 	requestUrl := fmt.Sprintf("%s/?url=%s", masterAddr, url.QueryEscape(rawURL))
-	requestsPerSecond := []int{1, 1, 1} // Example input
+	requestsPerSecond := []int{} // Example input
 	results := make(chan RequestData, 10000)
 
 	client := &http.Client{}
