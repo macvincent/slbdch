@@ -63,13 +63,22 @@ func (c *Cache) Set(key string, entry CacheEntry) {
 	c.metrics.RequestCount++
 }
 
-// CleanExpired removes expired cache entries
+// CleanExpiredEntries removes expired cache entries
 func (c *Cache) CleanExpiredEntries() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	for key, entry := range c.entries {
-		if time.Now().After(entry.Expiration) {
-			delete(c.entries, key)
+	for key := range c.entries {
+		// Step 1: Acquire a read lock, store the expiration time in a variable, and release the read lock
+		c.mutex.RLock()
+		expiration := c.entries[key].Expiration
+		c.mutex.RUnlock()
+
+		// Step 2: If the time has expired, acquire a write lock, check the expiration time again, delete the cache entry and release the write lock
+		if time.Now().After(expiration) {
+			c.mutex.Lock()
+			// Check expiration time again
+			if entry, ok := c.entries[key]; ok && time.Now().After(entry.Expiration) {
+				delete(c.entries, key)
+			}
+			c.mutex.Unlock()
 		}
 	}
 }
