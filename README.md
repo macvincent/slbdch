@@ -1,13 +1,7 @@
 # Scalable Load Balanced Web Cache with Dynamic Consistent Hashing
 ## Abstract
 
-Load balancing, by ensuring the equitable distribution of requests in a cluster, helps
-reduce the likelihood of hotspots among cluster nodes. In this project, we will
-apply a consistent hashing approach to develop a scalable web caching service. 
-We will explore our ability to dynamically include new nodes in the cluster while 
-maintaining the consistent nature of the hash. We will also explore both the cycle and the
-Kademlia tree versions of consistent hashing. We will demonstrate the utility of our approach and evaluate our implementation on metrics such as latency, throughput, and the 
-impact of nodes going down/getting added to the system.
+Load balancing is crucial for preventing hotspots in a cluster by ensuring equitable distribution of requests among nodes. In this project, we develop a scalable web caching service using consistent hashing. We compare the hash chord and Kademlia tree techniques of consistent hashing and report the comparisons. Additionally, we investigate our system's capability to dynamically add/remove nodes in the cluster while maintaining the consistency of the hash. Our system also makes efforts to reduce hot URL bottlenecks by identifying hot URLs and distributing client requests for hot URLs evenly. Our evaluation focuses on metrics such as latency, throughput, and cache hit rate. We observe that our system is highly scalable and more efficient compared to traditional hashing. We also provide a qualitative analysis of the system from a distributed systems perspective. 
 
 ## Install Dependencies
 1. [Install Go](https://go.dev/doc/install).
@@ -110,4 +104,16 @@ go run ./
 1. Run from the root directory:
 ```
 go run load_generator/load_tester.go
+```
+
+# Dynamic node insertion/deletion
+To insert a new worker node, from the master node, run:
+```
+go run admin/insert_remove_nodes.go insert <ip_address> <number of virtual nodes>
+```
+Make sure to start the web cache on the new worker and send heartbeats to master node
+
+To remove a worker node, one way is to stop the heartbeats and the node will be removed eventually. To remove it immediately, from the master node, run:
+```
+go run admin/insert_remove_nodes.go remove <ip_address>
 ```
