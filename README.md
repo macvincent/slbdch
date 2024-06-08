@@ -66,24 +66,7 @@ go mod tidy
 go run ./
 ```
 
-## Running consistent web cache heartbeat
-
-1. In a new termainal, change current terminal directory to `heartbeats`:
-```
-cd heartbeats
-```
-
-2. Initialize go modules from the project directory:
-```
-go mod tidy
-```
-
-3. Run main script:
-```
-go run ./
-```
-
-## Running consistent web main
+## Running consistent web main (master node)
 1. Update  `consistent_web_main/main.go` with a list of available ports in the object nodeList.
 
 2. In a new termainal, change current terminal directory to `consistent_web_main`:
@@ -117,3 +100,6 @@ To remove a worker node, one way is to stop the heartbeats and the node will be 
 ```
 go run admin/insert_remove_nodes.go remove <ip_address>
 ```
+
+# Hot URLs
+Configure threshold and k (gamma) in consistent_web_main/main.go
