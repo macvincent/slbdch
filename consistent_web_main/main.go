@@ -238,8 +238,8 @@ func (main Main) serve() {
 	defer logger.Sync()
 
 	// TODO figure out best threshold / k value
-	threshhold := 3.0
-	k := 0.5
+	threshhold := 1000.0
+	k := 0.65
 
 	hotUrls := Keys()
 
